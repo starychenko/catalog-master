@@ -46,13 +46,7 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         // Приховуємо deprecation warnings для зворотної сумісності
-        silenceDeprecations: ['legacy-js-api', 'import'],
-        // Global SCSS variables available in all components  
-        additionalData: `
-          @import "assets/src/styles/variables/_colors.scss";
-          @import "assets/src/styles/variables/_spacing.scss";
-          @import "assets/src/styles/variables/_breakpoints.scss";
-        `
+        silenceDeprecations: ['legacy-js-api', 'import']
       }
     }
   },
