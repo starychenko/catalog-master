@@ -1,5 +1,9 @@
 # Frontend-модулі Catalog Master
 
+[← README](../README.md) | [Архітектура](architecture.md) | [Імпорт XLSX](import-xlsx.md) | [Backend API](backend-api.md)
+
+---
+
 ## Структура assets/src/js
 
 - **core/CatalogMaster.js** — головний клас, ініціалізація всіх компонентів
@@ -40,4 +44,8 @@
 
 - Додавайте нові компоненти у відповідні папки
 - Дотримуйтесь модульної структури
-- Всі зміни SCSS — через змінні та модулі 
+- Всі зміни SCSS — через змінні та модулі
+
+---
+
+**Див. також:** [Архітектура](architecture.md) | [Імпорт XLSX](import-xlsx.md) | [Backend API](backend-api.md) 

@@ -1,5 +1,9 @@
 # Імпорт з Google Sheets (XLSX)
 
+[← README](../README.md) | [Архітектура](architecture.md) | [Frontend](frontend-modules.md) | [Backend API](backend-api.md)
+
+---
+
 ## Формат Google Sheets
 
 - Підтримується лише **XLSX** (експорт Google Sheets)
@@ -44,4 +48,8 @@ https://docs.google.com/spreadsheets/d/1DE7W63SlIe7ZyutDh25Z7IdV0Z33hK6ZlSUc6-yX
 
 - Для великих таблиць імпорт може займати до 1-2 хвилин
 - Всі дії імпорту логуються (див. "Логи та дебаг")
-- Якщо виникають помилки — перевірте логи та правильність посилання 
+- Якщо виникають помилки — перевірте логи та правильність посилання
+
+---
+
+**Див. також:** [Архітектура](architecture.md) | [Frontend-модулі](frontend-modules.md) | [Backend API](backend-api.md) 

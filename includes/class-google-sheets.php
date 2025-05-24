@@ -539,15 +539,15 @@ class CatalogMaster_GoogleSheets {
                     $original_value = $row[$column_index];
                     
                     try {
-                        // Special handling for images
-                        if (($catalog_column === 'product_image_url' || 
-                             $catalog_column === 'category_image_1' ||
-                             $catalog_column === 'category_image_2' ||
+                    // Special handling for images
+                    if (($catalog_column === 'product_image_url' || 
+                         $catalog_column === 'category_image_1' ||
+                         $catalog_column === 'category_image_2' ||
                              $catalog_column === 'category_image_3') && !empty($original_value)) {
-                            $product_id = isset($item['product_id']) ? $item['product_id'] : 'product-' . uniqid();
+                        $product_id = isset($item['product_id']) ? $item['product_id'] : 'product-' . uniqid();
                             $local_image_url = self::download_image($original_value, $catalog_id, $product_id);
                             $item[$catalog_column] = $local_image_url ?: $original_value;
-                        } else {
+                    } else {
                             $processed_value = self::process_column_value($original_value, $catalog_column);
                             $item[$catalog_column] = $processed_value;
                             
@@ -595,10 +595,10 @@ class CatalogMaster_GoogleSheets {
         // Clear existing items and insert new ones
         try {
             CatalogMaster_Logger::info('🗑️ Clearing existing catalog items');
-            CatalogMaster_Database::clear_catalog_items($catalog_id);
+        CatalogMaster_Database::clear_catalog_items($catalog_id);
             
             CatalogMaster_Logger::info('💾 Inserting new catalog items');
-            CatalogMaster_Database::insert_catalog_items($catalog_id, $mapped_items);
+        CatalogMaster_Database::insert_catalog_items($catalog_id, $mapped_items);
             
             CatalogMaster_Logger::info('✅ Import completed successfully', array(
                 'imported_count' => count($mapped_items),
@@ -609,10 +609,10 @@ class CatalogMaster_GoogleSheets {
             if ($skipped_rows > 0) {
                 $success_message .= ' (пропущено ' . $skipped_rows . ' порожніх рядків)';
             }
-            
-            return array(
-                'success' => true,
-                'imported_count' => count($mapped_items),
+        
+        return array(
+            'success' => true,
+            'imported_count' => count($mapped_items),
                 'skipped_count' => $skipped_rows,
                 'message' => $success_message
             );

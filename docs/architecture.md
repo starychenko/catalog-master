@@ -1,5 +1,9 @@
 # Архітектура Catalog Master
 
+[← README](../README.md) | [Імпорт XLSX](import-xlsx.md) | [Frontend](frontend-modules.md) | [Backend API](backend-api.md)
+
+---
+
 ## Загальна структура
 
 - **assets/src/** — фронтенд (ES6+ модулі, SCSS, Vite)
@@ -62,4 +66,8 @@
 ## Підтримка
 
 - Весь код — ES6+, SCSS, PHP OOP
-- Вся документація — в папці `docs/` 
+- Вся документація — в папці `docs/`
+
+---
+
+**Див. також:** [Імпорт XLSX](import-xlsx.md) | [Frontend-модулі](frontend-modules.md) | [Backend API](backend-api.md) 

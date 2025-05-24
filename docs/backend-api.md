@@ -1,5 +1,9 @@
 # Backend API (AJAX endpoints)
 
+[← README](../README.md) | [Архітектура](architecture.md) | [Імпорт XLSX](import-xlsx.md) | [Frontend](frontend-modules.md)
+
+---
+
 ## Основні endpoints (class-ajax.php)
 
 - **catalog_master_get_catalog_data**
@@ -56,4 +60,8 @@
 ## Примітка
 
 - Всі відповіді — у форматі JSON
-- Всі помилки — через wp_send_json_error (JS ловить і показує повідомлення) 
+- Всі помилки — через wp_send_json_error (JS ловить і показує повідомлення)
+
+---
+
+**Див. також:** [Архітектура](architecture.md) | [Імпорт XLSX](import-xlsx.md) | [Frontend-модулі](frontend-modules.md) 
