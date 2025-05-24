@@ -1,0 +1,38 @@
+{
+  "name": "catalog-master-builder",
+  "version": "1.0.0",
+  "description": "Builder script for Catalog Master WordPress plugin",
+  "main": "build-plugin.js",
+  "scripts": {
+    "build": "node build-plugin.js",
+    "build:help": "node build-plugin.js --help",
+    "install:deps": "npm install",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "builder",
+    "catalog",
+    "google-sheets"
+  ],
+  "author": "Your Name",
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "archiver": "^6.0.1"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/catalog-master.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/catalog-master/issues"
+  }
+} 
