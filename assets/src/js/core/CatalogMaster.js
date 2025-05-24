@@ -52,8 +52,8 @@ export default class CatalogMaster {
      * Initialize all component managers
      */
     initializeComponents() {
-        // Initialize tab management
-        this.components.tabs = new TabManager();
+        // Initialize tab management with config for settings functionality
+        this.components.tabs = new TabManager(this.config);
         
         // Initialize column mapping if on edit page
         if (this.isEditPage()) {

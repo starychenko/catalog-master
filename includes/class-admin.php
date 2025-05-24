@@ -394,45 +394,220 @@ class CatalogMaster_Admin {
             
             <!-- Settings Tab -->
             <div id="tab-settings" class="catalog-master-tab-content active">
-                <div class="catalog-master-card">
-                    <h3>Основні налаштування</h3>
-                    <form method="post" action="">
-                        <?php wp_nonce_field('catalog_master_update'); ?>
-                        <input type="hidden" name="action" value="update_catalog">
-                        <input type="hidden" name="catalog_id" value="<?php echo $catalog->id; ?>">
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row"><label for="name">Назва каталогу *</label></th>
-                                <td>
-                                    <input type="text" id="name" name="name" class="regular-text" value="<?php echo esc_attr($catalog->name); ?>" required>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="description">Опис</label></th>
-                                <td>
-                                    <textarea id="description" name="description" rows="4" class="large-text"><?php echo esc_textarea($catalog->description); ?></textarea>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="google_sheet_url">URL Google Sheets</label></th>
-                                <td>
-                                    <input type="url" id="google_sheet_url" name="google_sheet_url" class="large-text" value="<?php echo esc_attr($catalog->google_sheet_url); ?>">
-                                    <button type="button" id="test-sheets-connection" class="button button-secondary" style="margin-left: 10px;">Перевірити підключення</button>
-                                    <p class="description">Вставте звичайне посилання на Google Sheets таблицю (плагін автоматично конвертує його в XLSX формат)</p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="sheet_name">Назва аркуша</label></th>
-                                <td>
-                                    <input type="text" id="sheet_name" name="sheet_name" class="regular-text" value="<?php echo esc_attr($catalog->sheet_name); ?>">
-                                </td>
-                            </tr>
-                        </table>
-                        
-                        <?php submit_button('Оновити каталог'); ?>
-                    </form>
+                <!-- Catalog Overview Stats -->
+                <div class="settings-overview-grid">
+                    <div class="settings-overview-card">
+                        <div class="settings-card-content">
+                            <h4>Записів в каталозі</h4>
+                            <span class="settings-card-value"><?php echo number_format($items_count); ?></span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-overview-card">
+                        <div class="settings-card-content">
+                            <h4>Налаштувань мапінгу</h4>
+                            <span class="settings-card-value"><?php echo count($mappings); ?></span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-overview-card">
+                        <div class="settings-card-content">
+                            <h4>Дата створення</h4>
+                            <span class="settings-card-value"><?php echo date_i18n('d.m.Y', strtotime($catalog->created_at)); ?></span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-overview-card">
+                        <div class="settings-card-content">
+                            <h4>Статус підключення</h4>
+                            <span class="settings-card-value connection-status" id="connection-status">
+                                <?php echo !empty($catalog->google_sheet_url) ? 'Налаштовано' : 'Не налаштовано'; ?>
+                            </span>
+                        </div>
+                    </div>
                 </div>
+
+                <form method="post" action="" id="catalog-settings-form">
+                    <?php wp_nonce_field('catalog_master_update'); ?>
+                    <input type="hidden" name="action" value="update_catalog">
+                    <input type="hidden" name="catalog_id" value="<?php echo $catalog->id; ?>">
+                    
+                    <!-- Basic Information Section -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <h3>Основна інформація</h3>
+                            <p class="settings-section-description">Налаштування назви та опису каталогу</p>
+                        </div>
+                        
+                        <div class="settings-fields-grid">
+                            <div class="settings-field-group">
+                                <label for="name" class="settings-field-label">
+                                    Назва каталогу <span class="label-required">*</span>
+                                </label>
+                                <div class="settings-field-wrapper">
+                                    <input type="text" 
+                                           id="name" 
+                                           name="name" 
+                                           class="settings-field-input" 
+                                           value="<?php echo esc_attr($catalog->name); ?>" 
+                                           required
+                                           placeholder="Введіть назву каталогу">
+                                    <div class="field-hint">
+                                        Коротка, зрозуміла назва для ідентифікації каталогу
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-field-group full-width">
+                                <label for="description" class="settings-field-label">
+                                    Опис каталогу
+                                </label>
+                                <div class="settings-field-wrapper">
+                                    <textarea id="description" 
+                                              name="description" 
+                                              class="settings-field-textarea" 
+                                              rows="3"
+                                              placeholder="Детальний опис каталогу (необов'язково)"><?php echo esc_textarea($catalog->description); ?></textarea>
+                                    <div class="field-hint">
+                                        Опис допоможе вам та іншим користувачам зрозуміти призначення каталогу
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google Sheets Connection Section -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <h3>Підключення до Google Sheets</h3>
+                            <p class="settings-section-description">Налаштування джерела даних для імпорту</p>
+                        </div>
+                        
+                        <div class="settings-fields-grid">
+                            <div class="settings-field-group full-width">
+                                <label for="google_sheet_url" class="settings-field-label">
+                                    URL Google Sheets
+                                </label>
+                                <div class="settings-field-wrapper">
+                                    <div class="settings-field-with-button">
+                                        <input type="url" 
+                                               id="google_sheet_url" 
+                                               name="google_sheet_url" 
+                                               class="settings-field-input" 
+                                               value="<?php echo esc_attr($catalog->google_sheet_url); ?>"
+                                               placeholder="https://docs.google.com/spreadsheets/d/...">
+                                        <button type="button" 
+                                                id="test-sheets-connection" 
+                                                class="button button-secondary settings-test-btn">
+                                            Перевірити підключення
+                                        </button>
+                                    </div>
+                                    <div class="field-hint">
+                                        Вставте звичайне посилання на Google Sheets — плагін автоматично конвертує його в XLSX формат
+                                    </div>
+                                    <div id="connection-test-result" class="connection-status-message" style="display: none;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-field-group">
+                                <label for="sheet_name" class="settings-field-label">
+                                    Назва аркуша
+                                </label>
+                                <div class="settings-field-wrapper">
+                                    <input type="text" 
+                                           id="sheet_name" 
+                                           name="sheet_name" 
+                                           class="settings-field-input" 
+                                           value="<?php echo esc_attr($catalog->sheet_name); ?>"
+                                           placeholder="Sheet1">
+                                    <div class="field-hint">
+                                        За замовчуванням: Sheet1. Змініть, якщо ваші дані на іншому аркуші
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Connection Status Indicator -->
+                        <div class="connection-status-indicator" id="google-sheets-status">
+                            <?php if (!empty($catalog->google_sheet_url)): ?>
+                                <span class="status-item status-configured">
+                                    <span class="status-text">✓ URL налаштовано</span>
+                                </span>
+                            <?php else: ?>
+                                <span class="status-item status-not-configured">
+                                    <span class="status-text">⚠ URL не налаштовано</span>
+                                </span>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($mappings)): ?>
+                                <span class="status-item status-configured">
+                                    <span class="status-text">✓ Мапінг налаштовано (<?php echo count($mappings); ?> полів)</span>
+                                </span>
+                            <?php else: ?>
+                                <span class="status-item status-warning">
+                                    <span class="status-text">⚠ Мапінг не налаштовано</span>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Catalog Information Section -->
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <h3>Інформація про каталог</h3>
+                            <p class="settings-section-description">Системна інформація та статистика</p>
+                        </div>
+                        
+                        <div class="settings-info-grid">
+                            <div class="settings-info-item">
+                                <span class="info-label">ID каталогу:</span>
+                                <span class="info-value">
+                                    <code><?php echo $catalog->id; ?></code>
+                                    <button type="button" class="copy-btn" onclick="navigator.clipboard.writeText('<?php echo $catalog->id; ?>')" title="Копіювати">📋</button>
+                                </span>
+                            </div>
+                            
+                            <div class="settings-info-item">
+                                <span class="info-label">Створено:</span>
+                                <span class="info-value"><?php echo date_i18n('d.m.Y H:i', strtotime($catalog->created_at)); ?></span>
+                            </div>
+                            
+                            <div class="settings-info-item">
+                                <span class="info-label">Останнє оновлення:</span>
+                                <span class="info-value"><?php echo date_i18n('d.m.Y H:i', strtotime($catalog->updated_at)); ?></span>
+                            </div>
+                            
+                            <div class="settings-info-item">
+                                <span class="info-label">Статус:</span>
+                                <span class="info-value">
+                                    <span class="status-badge status-active">Активний</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="settings-actions">
+                        <div class="settings-actions-primary">
+                            <button type="submit" class="button button-primary button-large settings-save-btn">
+                                Зберегти налаштування
+                            </button>
+                        </div>
+                        
+                        <div class="settings-actions-secondary">
+                            <a href="<?php echo admin_url('admin.php?page=catalog-master'); ?>" 
+                               class="button button-secondary">
+                                ← Повернутися до списку
+                            </a>
+                            
+                            <button type="button" 
+                                    class="button button-link-delete" 
+                                    onclick="if(confirm('Ви впевнені, що хочете видалити цей каталог? Всі дані будуть втрачені!')) { window.location.href='<?php echo wp_nonce_url(admin_url('admin.php?page=catalog-master&action=delete&id=' . $catalog->id), 'catalog_master_delete'); ?>'; }">
+                                🗑️ Видалити каталог
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
             
             <!-- Column Mapping Tab -->

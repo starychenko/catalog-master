@@ -1,0 +1,431 @@
+/* ==========================================================================
+   Settings Tab Styles - Clean & Minimal Design
+   ========================================================================== */
+
+/* Overview Stats - Simple Grid */
+.settings-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0;
+    margin-bottom: 2rem;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    overflow: hidden;
+    
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.settings-overview-card {
+    background: #f9f9f9;
+    border-right: 1px solid #c3c4c7;
+    padding: 1rem;
+    text-align: center;
+    
+    &:last-child {
+        border-right: none;
+    }
+    
+    @media (max-width: 768px) {
+        border-right: none;
+        border-bottom: 1px solid #c3c4c7;
+        
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+}
+
+.settings-card-content {
+    h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #646970;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+}
+
+.settings-card-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1;
+    
+    &.connection-status {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+}
+
+/* Settings Sections - Clean & Flat */
+.settings-section {
+    margin-bottom: 3rem;
+    
+    &:last-child {
+        margin-bottom: 2rem;
+    }
+}
+
+.settings-section-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 0.75rem;
+    
+    h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1d2327;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+}
+
+.settings-section-icon {
+    font-size: 1.5rem;
+}
+
+.settings-section-description {
+    margin: 0.5rem 0 0 0;
+    color: #646970;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Form Fields - WordPress Native Style */
+.settings-fields-grid {
+    display: block;
+}
+
+.settings-field-group {
+    margin-bottom: 1.5rem;
+    
+    &.full-width {
+        /* No special styling needed */
+    }
+}
+
+.settings-field-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 0.875rem;
+    
+    .label-required {
+        color: #d63638;
+        margin-left: 0.25rem;
+    }
+}
+
+.settings-field-wrapper {
+    position: relative;
+    max-width: 600px;
+}
+
+.settings-field-input,
+.settings-field-textarea {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    background: #fff;
+    transition: border-color 0.15s ease;
+    
+    &:focus {
+        border-color: #2271b1;
+        outline: 0;
+        box-shadow: 0 0 0 1px #2271b1;
+    }
+    
+    &::placeholder {
+        color: #8c8f94;
+    }
+}
+
+.settings-field-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.settings-field-with-button {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    
+    .settings-field-input {
+        flex: 1;
+    }
+}
+
+.settings-test-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.field-hint {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: #646970;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Connection Status - Simple Inline */
+.connection-status-indicator {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f6f7f7;
+    border-left: 4px solid #646970;
+    
+    &.status-success {
+        background: #f0f8f0;
+        border-left-color: #00a32a;
+    }
+    
+    &.status-warning {
+        background: #fef7e0;
+        border-left-color: #dba617;
+    }
+    
+    &.status-error {
+        background: #fcf2f3;
+        border-left-color: #d63638;
+    }
+}
+
+.status-item {
+    display: inline-block;
+    margin-right: 1.5rem;
+    font-size: 0.875rem;
+    
+    &:last-child {
+        margin-right: 0;
+    }
+    
+    &.status-configured .status-text {
+        color: #00a32a;
+        font-weight: 500;
+    }
+    
+    &.status-not-configured .status-text {
+        color: #d63638;
+        font-weight: 500;
+    }
+    
+    &.status-warning .status-text {
+        color: #dba617;
+        font-weight: 500;
+    }
+}
+
+.connection-status-message {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    
+    &.success {
+        background: #d1e7dd;
+        border: 1px solid #badbcc;
+        color: #0f5132;
+    }
+    
+    &.error {
+        background: #f8d7da;
+        border: 1px solid #f5c2c7;
+        color: #842029;
+    }
+    
+    &.loading {
+        background: #cff4fc;
+        border: 1px solid #b6effb;
+        color: #055160;
+    }
+}
+
+/* Info Section - Table Style */
+.settings-info-grid {
+    margin-top: 1.5rem;
+}
+
+.settings-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f1;
+    font-size: 0.875rem;
+    
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.info-label {
+    font-weight: 500;
+    color: #646970;
+}
+
+.info-value {
+    font-weight: 600;
+    color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    code {
+        background: #f6f7f7;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        border: 1px solid #dcdcde;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 0.8rem;
+    }
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    border-radius: 3px;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+    
+    &:hover {
+        opacity: 1;
+        background: #f0f0f1;
+    }
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    
+    &.status-active {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+    
+    &.status-inactive {
+        background: #f8d7da;
+        color: #842029;
+    }
+}
+
+/* Action Buttons - WordPress Style */
+.settings-actions {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #dcdcde;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.settings-actions-primary {
+    @media (max-width: 768px) {
+        order: 2;
+    }
+}
+
+.settings-actions-secondary {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    
+    @media (max-width: 768px) {
+        order: 1;
+        justify-content: center;
+    }
+}
+
+.settings-save-btn {
+    &.has-changes {
+        background: #d63638;
+        border-color: #d63638;
+        
+        &:hover,
+        &:focus {
+            background: #b32d2e;
+            border-color: #b32d2e;
+        }
+    }
+}
+
+/* Form Validation States */
+.settings-field-input.error,
+.settings-field-textarea.error {
+    border-color: #d63638;
+    box-shadow: 0 0 0 1px #d63638;
+}
+
+.settings-field-input.success,
+.settings-field-textarea.success {
+    border-color: #00a32a;
+    box-shadow: 0 0 0 1px #00a32a;
+}
+
+/* Loading States */
+.settings-test-btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Connection Status States */
+.connection-status {
+    &.connected {
+        color: #00a32a !important;
+    }
+    
+    &.error {
+        color: #d63638 !important;
+    }
+    
+    &.warning {
+        color: #dba617 !important;
+    }
+}
+
+/* Remove card icons and simplify */
+.settings-card-icon {
+    display: none;
+} 
