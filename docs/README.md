@@ -31,4 +31,15 @@
 
 - [Офіційний репозиторій](https://github.com/your-repo/catalog-master)
 - [WordPress Plugin Directory](https://wordpress.org/plugins/catalog-master/)
-- [Підтримка](mailto:support@catalog-master.com) 
+- [Підтримка](mailto:support@catalog-master.com)
+
+## 📖 Доступна документація
+
+### Для користувачів
+- [**🚀 Інструкція з XLSX імпорту**](import-xlsx.md) - повний гід по роботі з Google Sheets
+- [**🗂️ Покращення мапінгу стовпців**](column-mapping-improvements.md) - нові можливості v1.1.0
+
+### Для розробників  
+- [**🏗️ Архітектура проєкту**](architecture.md) - структура та компоненти
+- [**🎨 Frontend модулі**](frontend-modules.md) - JavaScript та SCSS архітектура
+- [**🔌 Backend API**](backend-api.md) - документація AJAX ендпоінтів 
