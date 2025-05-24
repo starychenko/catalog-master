@@ -3,7 +3,7 @@
  * Plugin Name: Catalog Master
  * Plugin URI: https://example.com/catalog-master
  * Description: Плагін для створення та управління віртуальними каталогами з імпортом з Google Sheets
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Your Name
  * License: GPL v2 or later
  * Text Domain: catalog-master
@@ -24,7 +24,7 @@ if (!defined('ABSPATH') && file_exists(__DIR__ . '/includes/ide-helper.php')) {
 }
 
 // Define plugin constants
-define('CATALOG_MASTER_VERSION', '1.0.3');
+define('CATALOG_MASTER_VERSION', '1.0.4');
 define('CATALOG_MASTER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CATALOG_MASTER_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('CATALOG_MASTER_PLUGIN_FILE', __FILE__);

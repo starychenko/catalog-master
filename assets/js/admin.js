@@ -103,11 +103,20 @@ jQuery(document).ready(function($) {
             var catalogId = $('#catalog-items-table').data('catalog-id');
             if (catalogId) {
                 catalogMaster.currentCatalogId = catalogId;
+                
+                // Check screen size to determine table mode
+                var isMobile = window.innerWidth < 768;
+                var isTablet = window.innerWidth < 1024;
+                
                 catalogMaster.dataTable = $('#catalog-items-table').DataTable({
                     processing: true,
                     serverSide: true,
-                    responsive: true,
-                    scrollX: true,
+                    // Use either responsive OR scrollX, not both
+                    responsive: isMobile,
+                    scrollX: !isMobile,
+                    scrollCollapse: !isMobile,
+                    fixedHeader: !isMobile,
+                    autoWidth: false, // Prevent automatic width calculation
                     ajax: {
                         url: catalog_master_ajax.ajax_url,
                         type: 'POST',
@@ -120,106 +129,127 @@ jQuery(document).ready(function($) {
                     columns: [
                         { 
                             title: 'ID', 
-                            width: '50px',
-                            className: 'text-center',
+                            width: '60px',
+                            className: 'text-center dt-center',
                             responsivePriority: 1
                         },
                         { 
                             title: 'Product ID',
+                            width: '120px',
                             responsivePriority: 2
                         },
                         { 
                             title: 'Product Name',
+                            width: '200px',
                             responsivePriority: 1
                         },
                         { 
                             title: 'Price',
-                            className: 'text-right',
+                            width: '100px',
+                            className: 'text-right dt-right',
                             responsivePriority: 3
                         },
                         { 
                             title: 'Qty',
-                            className: 'text-center',
-                            width: '60px'
+                            width: '70px',
+                            className: 'text-center dt-center'
                         },
                         { 
                             title: 'Product Image', 
+                            width: '90px',
                             orderable: false,
-                            className: 'text-center',
-                            width: '80px'
+                            className: 'text-center dt-center',
+                            searchable: false
                         },
                         { 
                             title: 'Sort',
-                            className: 'text-center',
-                            width: '60px'
+                            width: '70px',
+                            className: 'text-center dt-center'
                         },
                         { 
                             title: 'Description',
+                            width: '200px',
                             responsivePriority: 4
                         },
                         { 
                             title: 'Cat1 ID',
+                            width: '100px',
+                            className: 'cat1-column',
                             responsivePriority: 5
                         },
                         { 
                             title: 'Cat1 Name',
+                            width: '150px',
+                            className: 'cat1-column',
                             responsivePriority: 5
                         },
                         { 
                             title: 'Cat1 Image', 
+                            width: '80px',
                             orderable: false,
-                            className: 'text-center',
-                            width: '70px'
+                            className: 'text-center dt-center cat1-column',
+                            searchable: false
                         },
                         { 
                             title: 'Cat1 Sort',
-                            className: 'text-center',
-                            width: '60px'
+                            width: '80px',
+                            className: 'text-center dt-center cat1-column'
                         },
                         { 
                             title: 'Cat2 ID',
+                            width: '100px',
+                            className: 'cat2-column',
                             responsivePriority: 6
                         },
                         { 
                             title: 'Cat2 Name',
+                            width: '150px',
+                            className: 'cat2-column',
                             responsivePriority: 6
                         },
                         { 
                             title: 'Cat2 Image', 
+                            width: '80px',
                             orderable: false,
-                            className: 'text-center',
-                            width: '70px'
+                            className: 'text-center dt-center cat2-column',
+                            searchable: false
                         },
                         { 
                             title: 'Cat2 Sort',
-                            className: 'text-center',
-                            width: '60px'
+                            width: '80px',
+                            className: 'text-center dt-center cat2-column'
                         },
                         { 
                             title: 'Cat3 ID',
+                            width: '100px',
+                            className: 'cat3-column',
                             responsivePriority: 7
                         },
                         { 
                             title: 'Cat3 Name',
+                            width: '150px',
+                            className: 'cat3-column',
                             responsivePriority: 7
                         },
                         { 
                             title: 'Cat3 Image', 
+                            width: '80px',
                             orderable: false,
-                            className: 'text-center',
-                            width: '70px'
+                            className: 'text-center dt-center cat3-column',
+                            searchable: false
                         },
                         { 
                             title: 'Cat3 Sort',
-                            className: 'text-center',
-                            width: '60px'
+                            width: '80px',
+                            className: 'text-center dt-center cat3-column'
                         },
                         { 
                             title: 'Actions', 
+                            width: '120px',
                             orderable: false, 
-                            width: '100px',
-                            className: 'text-center',
-                            responsivePriority: 1
+                            className: 'text-center dt-center actions-fixed',
+                            responsivePriority: 1,
+                            searchable: false
                         }
                     ],
                     pageLength: 25,
@@ -227,11 +257,23 @@ jQuery(document).ready(function($) {
                     columnDefs: [
                         {
                             targets: [5, 10, 14, 18], // Image columns
-                            className: 'no-wrap'
+                            className: 'no-wrap dt-center'
                         },
                         {
                             targets: [20], // Actions column
-                            className: 'no-wrap'
+                            className: 'no-wrap dt-center actions-fixed'
+                        },
+                        {
+                            targets: [8, 9, 10, 11], // Cat1 columns
+                            className: 'cat1-bg'
+                        },
+                        {
+                            targets: [12, 13, 14, 15], // Cat2 columns  
+                            className: 'cat2-bg'
+                        },
+                        {
+                            targets: [16, 17, 18, 19], // Cat3 columns
+                            className: 'cat3-bg'
                         }
                     ],
                     language: {
@@ -249,14 +291,114 @@ jQuery(document).ready(function($) {
                         },
                         emptyTable: 'Немає даних для відображення'
                     },
-                    dom: '<"datatable-top"<"datatable-info"i><"datatable-length"l><"datatable-search"f>>rt<"datatable-bottom"<"datatable-pagination"p>>',
+                    dom: isMobile ? 
+                        '<"mobile-controls"<"mobile-length"l><"mobile-search"f>>rt<"mobile-pagination"p>' :
+                        '<"datatable-top"<"datatable-info"i><"datatable-length"l><"datatable-search"f>>rt<"datatable-bottom"<"datatable-pagination"p>>',
                     initComplete: function() {
                         // Add custom styling after table initialization
                         $('#catalog-items-table').addClass('catalog-items-enhanced');
+                        
+                        // Fix column alignment on init
+                        catalogMaster.fixColumnAlignment();
+                        
+                        // Add resize listener for dynamic fixing
+                        $(window).on('resize.datatables', catalogMaster.debounce(function() {
+                            catalogMaster.handleResponsiveResize();
+                        }, 250));
+                    },
+                    drawCallback: function() {
+                        // Fix alignment after each redraw
+                        setTimeout(function() {
+                            catalogMaster.fixColumnAlignment();
+                        }, 100);
                     }
                 });
             }
         }
+    };
+    
+    // Fix column alignment issues
+    catalogMaster.fixColumnAlignment = function() {
+        if (!catalogMaster.dataTable) return;
+        
+        try {
+            // Force column width recalculation
+            catalogMaster.dataTable.columns.adjust();
+            
+            // Specific fixes for scrollX mode
+            if (!window.matchMedia('(max-width: 768px)').matches) {
+                var $wrapper = $('#catalog-items-table_wrapper');
+                var $header = $wrapper.find('.dataTables_scrollHead table');
+                var $body = $wrapper.find('.dataTables_scrollBody table');
+                
+                if ($header.length && $body.length) {
+                    // Sync header and body widths
+                    $header.css('width', $body.css('width'));
+                    
+                    // Sync individual column widths
+                    $body.find('thead th').each(function(index) {
+                        var bodyWidth = $(this).outerWidth();
+                        $header.find('th').eq(index).css('width', bodyWidth + 'px');
+                    });
+                }
+            }
+        } catch (e) {
+            console.log('Column alignment adjustment failed:', e);
+        }
+    };
+    
+    // Handle responsive resize with proper DataTable reinitialization
+    catalogMaster.handleResponsiveResize = function() {
+        if (!catalogMaster.dataTable) return;
+        
+        var isMobile = window.innerWidth < 768;
+        var currentlyMobile = catalogMaster.dataTable.responsive.hasHidden();
+        
+        // If screen size category changed, reinitialize
+        if ((isMobile && !catalogMaster.dataTable.settings()[0].oInit.responsive) || 
+            (!isMobile && catalogMaster.dataTable.settings()[0].oInit.responsive)) {
+            
+            // Store current page and search
+            var currentPage = catalogMaster.dataTable.page();
+            var currentSearch = catalogMaster.dataTable.search();
+            
+            // Destroy and recreate
+            catalogMaster.dataTable.destroy();
+            
+            // Small delay to ensure cleanup
+            setTimeout(function() {
+                catalogMaster.initializeDataTable();
+                
+                // Restore state after initialization
+                setTimeout(function() {
+                    if (currentSearch) {
+                        catalogMaster.dataTable.search(currentSearch);
+                    }
+                    if (currentPage > 0) {
+                        catalogMaster.dataTable.page(currentPage);
+                    }
+                    catalogMaster.dataTable.draw(false);
+                }, 100);
+            }, 50);
+        } else {
+            // Just fix alignment for same mode
+            catalogMaster.fixColumnAlignment();
+        }
+    };
+    
+    // Debounce function for resize events
+    catalogMaster.debounce = function(func, wait) {
+        var timeout;
+        return function executedFunction() {
+            var context = this;
+            var args = arguments;
+            var later = function() {
+                timeout = null;
+                func.apply(context, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     };
     
     // Test Google Sheets connection
