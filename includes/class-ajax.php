@@ -74,16 +74,30 @@ class CatalogMaster_Ajax {
      * Save column mapping
      */
     public function save_column_mapping() {
+        CatalogMaster_Logger::info('🔄 Save column mapping AJAX called');
+        
         check_ajax_referer('catalog_master_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
+            CatalogMaster_Logger::error('❌ Insufficient permissions for save column mapping');
             wp_die('Insufficient permissions');
         }
         
         $catalog_id = intval($_POST['catalog_id']);
         $mappings = $_POST['mappings'];
         
+        CatalogMaster_Logger::info('📊 Received data', array(
+            'catalog_id' => $catalog_id,
+            'mappings_raw' => $mappings,
+            'post_data' => $_POST
+        ));
+        
         if (!$catalog_id || !is_array($mappings)) {
+            CatalogMaster_Logger::error('❌ Invalid data', array(
+                'catalog_id' => $catalog_id,
+                'mappings_is_array' => is_array($mappings),
+                'mappings_type' => gettype($mappings)
+            ));
             wp_send_json_error('Невірні дані');
         }
         
@@ -98,9 +112,25 @@ class CatalogMaster_Ajax {
             }
         }
         
-        CatalogMaster_Database::save_column_mapping($catalog_id, $clean_mappings);
+        CatalogMaster_Logger::info('✅ Clean mappings prepared', array(
+            'clean_mappings' => $clean_mappings,
+            'count' => count($clean_mappings)
+        ));
         
-        wp_send_json_success('Маппінг збережено');
+        try {
+            CatalogMaster_Database::save_column_mapping($catalog_id, $clean_mappings);
+            CatalogMaster_Logger::info('✅ Column mapping saved successfully');
+            
+            wp_send_json_success(array(
+                'message' => 'Маппінг збережено',
+                'saved_count' => count($clean_mappings)
+            ));
+        } catch (Exception $e) {
+            CatalogMaster_Logger::error('❌ Database error saving column mapping', array(
+                'error' => $e->getMessage()
+            ));
+            wp_send_json_error('Помилка збереження в базу даних');
+        }
     }
     
     /**
@@ -157,61 +187,126 @@ class CatalogMaster_Ajax {
         }
         
         $catalog_id = intval($_POST['catalog_id']);
-        $start = intval($_POST['start']);
-        $length = intval($_POST['length']);
-        $search = sanitize_text_field($_POST['search']['value']);
         
-        $items = CatalogMaster_Database::get_catalog_items($catalog_id, $length, $start);
-        $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id);
+        // Check if this is the new Modern Table Manager format
+        $is_modern_format = isset($_POST['page']) && isset($_POST['page_size']);
         
-        // Format data for DataTable - all fields
-        $data = array();
-        foreach ($items as $item) {
-            $row = array();
+        if ($is_modern_format) {
+            // New Modern Table Manager format
+            $page = intval($_POST['page']);
+            $page_size = intval($_POST['page_size']);
+            $search = sanitize_text_field($_POST['search'] ?? '');
+            $sort_column = sanitize_text_field($_POST['sort_column'] ?? 'product_id');
+            $sort_direction = sanitize_text_field($_POST['sort_direction'] ?? 'asc');
             
-            // Basic product fields
-            $row[] = $item->id ?? '';
-            $row[] = esc_html($item->product_id ?? '');
-            $row[] = esc_html($item->product_name ?? '');
-            $row[] = $item->product_price ? number_format($item->product_price, 2) : '';
-            $row[] = intval($item->product_qty ?? 0);
-            $row[] = $item->product_image_url ? '<img src="' . esc_url($item->product_image_url) . '" style="max-width:50px;max-height:50px;" loading="lazy">' : '';
-            $row[] = intval($item->product_sort_order ?? 0);
-            $row[] = esc_html(wp_trim_words($item->product_description ?? '', 8));
+            // Calculate offset
+            $offset = ($page - 1) * $page_size;
             
-            // Category 1
-            $row[] = esc_html($item->category_id_1 ?? '');
-            $row[] = esc_html($item->category_name_1 ?? '');
-            $row[] = $item->category_image_1 ? '<img src="' . esc_url($item->category_image_1) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
-            $row[] = intval($item->category_sort_order_1 ?? 0);
+            // Get items with sorting and search
+            $items = CatalogMaster_Database::get_catalog_items_modern(
+                $catalog_id, 
+                $page_size, 
+                $offset, 
+                $search, 
+                $sort_column, 
+                $sort_direction
+            );
             
-            // Category 2
-            $row[] = esc_html($item->category_id_2 ?? '');
-            $row[] = esc_html($item->category_name_2 ?? '');
-            $row[] = $item->category_image_2 ? '<img src="' . esc_url($item->category_image_2) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
-            $row[] = intval($item->category_sort_order_2 ?? 0);
+            $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id, $search);
             
-            // Category 3
-            $row[] = esc_html($item->category_id_3 ?? '');
-            $row[] = esc_html($item->category_name_3 ?? '');
-            $row[] = $item->category_image_3 ? '<img src="' . esc_url($item->category_image_3) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
-            $row[] = intval($item->category_sort_order_3 ?? 0);
+            // Format data as objects for Modern Table Manager
+            $data = array();
+            foreach ($items as $item) {
+                $data[] = array(
+                    'id' => $item->id,
+                    'product_id' => $item->product_id ?? '',
+                    'product_name' => $item->product_name ?? '',
+                    'product_price' => $item->product_price ?? '',
+                    'product_qty' => $item->product_qty ?? '',
+                    'product_image_url' => $item->product_image_url ?? '',
+                    'product_sort_order' => $item->product_sort_order ?? '',
+                    'product_description' => $item->product_description ?? '',
+                    'category_id_1' => $item->category_id_1 ?? '',
+                    'category_name_1' => $item->category_name_1 ?? '',
+                    'category_image_1' => $item->category_image_1 ?? '',
+                    'category_sort_order_1' => $item->category_sort_order_1 ?? '',
+                    'category_id_2' => $item->category_id_2 ?? '',
+                    'category_name_2' => $item->category_name_2 ?? '',
+                    'category_image_2' => $item->category_image_2 ?? '',
+                    'category_sort_order_2' => $item->category_sort_order_2 ?? '',
+                    'category_id_3' => $item->category_id_3 ?? '',
+                    'category_name_3' => $item->category_name_3 ?? '',
+                    'category_image_3' => $item->category_image_3 ?? '',
+                    'category_sort_order_3' => $item->category_sort_order_3 ?? ''
+                );
+            }
             
-            // Actions
-            $row[] = '<div class="actions-column">' .
-                     '<button class="button button-small edit-item" data-id="' . $item->id . '" title="Редагувати">✏️</button> ' .
-                     '<button class="button button-small button-link-delete delete-item" data-id="' . $item->id . '" title="Видалити">🗑️</button>' .
-                     '</div>';
+            wp_send_json_success(array(
+                'data' => $data,
+                'total' => $total_count,
+                'page' => $page,
+                'page_size' => $page_size,
+                'total_pages' => ceil($total_count / $page_size)
+            ));
             
-            $data[] = $row;
+        } else {
+            // Legacy DataTables format
+            $start = intval($_POST['start']);
+            $length = intval($_POST['length']);
+            $search = sanitize_text_field($_POST['search']['value']);
+            
+            $items = CatalogMaster_Database::get_catalog_items($catalog_id, $length, $start);
+            $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id);
+            
+            // Format data for DataTable - all fields
+            $data = array();
+            foreach ($items as $item) {
+                $row = array();
+                
+                // Basic product fields
+                $row[] = $item->id ?? '';
+                $row[] = esc_html($item->product_id ?? '');
+                $row[] = esc_html($item->product_name ?? '');
+                $row[] = $item->product_price ? number_format($item->product_price, 2) : '';
+                $row[] = intval($item->product_qty ?? 0);
+                $row[] = $item->product_image_url ? '<img src="' . esc_url($item->product_image_url) . '" style="max-width:50px;max-height:50px;" loading="lazy">' : '';
+                $row[] = intval($item->product_sort_order ?? 0);
+                $row[] = esc_html(wp_trim_words($item->product_description ?? '', 8));
+                
+                // Category 1
+                $row[] = esc_html($item->category_id_1 ?? '');
+                $row[] = esc_html($item->category_name_1 ?? '');
+                $row[] = $item->category_image_1 ? '<img src="' . esc_url($item->category_image_1) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+                $row[] = intval($item->category_sort_order_1 ?? 0);
+                
+                // Category 2
+                $row[] = esc_html($item->category_id_2 ?? '');
+                $row[] = esc_html($item->category_name_2 ?? '');
+                $row[] = $item->category_image_2 ? '<img src="' . esc_url($item->category_image_2) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+                $row[] = intval($item->category_sort_order_2 ?? 0);
+                
+                // Category 3
+                $row[] = esc_html($item->category_id_3 ?? '');
+                $row[] = esc_html($item->category_name_3 ?? '');
+                $row[] = $item->category_image_3 ? '<img src="' . esc_url($item->category_image_3) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+                $row[] = intval($item->category_sort_order_3 ?? 0);
+                
+                // Actions
+                $row[] = '<div class="actions-column">' .
+                         '<button class="button button-small edit-item" data-id="' . $item->id . '" title="Редагувати">✏️</button> ' .
+                         '<button class="button button-small button-link-delete delete-item" data-id="' . $item->id . '" title="Видалити">🗑️</button>' .
+                         '</div>';
+                
+                $data[] = $row;
+            }
+            
+            wp_send_json(array(
+                'draw' => intval($_POST['draw']),
+                'recordsTotal' => $total_count,
+                'recordsFiltered' => $total_count,
+                'data' => $data
+            ));
         }
-        
-        wp_send_json(array(
-            'draw' => intval($_POST['draw']),
-            'recordsTotal' => $total_count,
-            'recordsFiltered' => $total_count,
-            'data' => $data
-        ));
     }
     
     /**

@@ -1,0 +1,39 @@
+/* Spacing Variables */
+
+// Base spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 15px;
+$spacing-xl: 20px;
+$spacing-xxl: 30px;
+
+// Padding
+$padding-xs: $spacing-xs;
+$padding-sm: $spacing-sm;
+$padding-md: $spacing-md;
+$padding-lg: $spacing-lg;
+$padding-xl: $spacing-xl;
+$padding-xxl: $spacing-xxl;
+
+// Margin
+$margin-xs: $spacing-xs;
+$margin-sm: $spacing-sm;
+$margin-md: $spacing-md;
+$margin-lg: $spacing-lg;
+$margin-xl: $spacing-xl;
+$margin-xxl: $spacing-xxl;
+
+// Border radius
+$border-radius-sm: 3px;
+$border-radius-md: 4px;
+$border-radius-lg: 6px;
+$border-radius-xl: 8px;
+$border-radius-pill: 50px;
+
+// Container sizes
+$container-sm: 576px;
+$container-md: 768px;
+$container-lg: 992px;
+$container-xl: 1200px;
+$container-xxl: 1400px; 

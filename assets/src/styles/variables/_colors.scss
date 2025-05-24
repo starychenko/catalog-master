@@ -1,0 +1,92 @@
+/* Color Variables */
+
+// WordPress Admin Colors
+$wp-primary: #0073aa;
+$wp-primary-hover: #005a87;
+$wp-success: #00a32a;
+$wp-success-hover: #008a20;
+$wp-danger: #d63638;
+$wp-danger-hover: #b32d2e;
+$wp-warning: #856404;
+$wp-info: #055160;
+
+// Grays
+$gray-50: #f9f9f9;
+$gray-100: #f6f7f7;
+$gray-200: #f0f0f1;
+$gray-300: #dcdcde;
+$gray-400: #c3c4c7;
+$gray-500: #8c8f94;
+$gray-600: #646970;
+$gray-700: #3c434a;
+$gray-800: #2c3338;
+$gray-900: #1d2327;
+
+// Status Colors
+$status-success: $wp-success;
+$status-success-bg: #d1e7dd;
+$status-success-border: #badbcc;
+$status-success-text: #0f5132;
+
+$status-error: $wp-danger;
+$status-error-bg: #f8d7da;
+$status-error-border: #f5c2c7;
+$status-error-text: #721c24;
+
+$status-warning: $wp-warning;
+$status-warning-bg: #fff3cd;
+$status-warning-border: #ffecb5;
+$status-warning-text: #856404;
+
+$status-info: $wp-info;
+$status-info-bg: #d1ecf1;
+$status-info-border: #bee5eb;
+$status-info-text: #055160;
+
+// Text Colors
+$text-primary: $gray-900;
+$text-secondary: $gray-600;
+$text-muted: $gray-500;
+
+// Background Colors
+$content-bg: #ffffff;
+$body-bg: #f1f1f1;
+
+// Border Colors
+$border-light: #e1e1e1;
+$border-medium: #c3c4c7;
+$border-dark: #8c8f94;
+
+// Category Colors (for DataTable)
+$category-1-color: #0073aa;
+$category-1-bg: rgba(0, 115, 170, 0.05);
+
+$category-2-color: #00a32a;
+$category-2-bg: rgba(0, 163, 42, 0.05);
+
+$category-3-color: #d63638;
+$category-3-bg: rgba(214, 54, 56, 0.05);
+
+// Category Colors
+$category-1-color: #2196f3;
+$category-1-bg: #e3f2fd;
+
+$category-2-color: #9c27b0;
+$category-2-bg: #f3e5f5;
+
+$category-3-color: #4caf50;
+$category-3-bg: #e8f5e8;
+
+// Background Colors
+$body-bg: #f1f1f1;
+$content-bg: #ffffff;
+$card-bg: #ffffff;
+
+// Border Colors
+$border-light: #f0f0f1;
+$border-medium: #dcdcde;
+$border-dark: #c3c4c7;
+
+// Link Colors
+$link-color: $wp-primary;
+$link-hover: $wp-primary-hover; 

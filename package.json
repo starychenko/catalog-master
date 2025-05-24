@@ -1,32 +1,33 @@
 {
-  "name": "catalog-master-builder",
-  "version": "1.0.0",
-  "description": "Builder script for Catalog Master WordPress plugin",
-  "main": "build-plugin.js",
+  "name": "catalog-master",
+  "version": "1.1.0",
+  "description": "WordPress plugin for creating and managing virtual catalogs with Google Sheets import",
+  "type": "module",
   "scripts": {
-    "build": "node build-plugin.js",
-    "build:help": "node build-plugin.js --help",
-    "install:deps": "npm install",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:plugin": "node build-plugin.cjs"
   },
   "keywords": [
     "wordpress",
     "plugin",
-    "builder",
     "catalog",
-    "google-sheets"
+    "google-sheets",
+    "vite"
   ],
   "author": "Your Name",
   "license": "GPL-2.0-or-later",
-  "dependencies": {
-    "archiver": "^6.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "vite": "^5.4.0",
+    "sass": "^1.79.0",
+    "@vitejs/plugin-legacy": "^5.4.0",
+    "archiver": "^6.0.1",
     "rimraf": "^5.0.5"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,488 @@
+/* Modern Table Styles */
+
+.modern-table-container {
+  background: $content-bg;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+/* Table Controls */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid $border-light;
+  background: $gray-50;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+.table-controls-left,
+.table-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  label {
+    font-size: 14px;
+    color: $text-secondary;
+    margin: 0;
+  }
+  
+  select {
+    padding: 6px 8px;
+    border: 1px solid $border-medium;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    
+    &:focus {
+      outline: none;
+      border-color: $wp-primary;
+    }
+  }
+  
+  span {
+    font-size: 14px;
+    color: $text-secondary;
+  }
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  
+  input {
+    padding: 8px 35px 8px 12px;
+    border: 1px solid $border-medium;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 250px;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+    
+    &:focus {
+      outline: none;
+      border-color: $wp-primary;
+      box-shadow: 0 0 0 2px rgba($wp-primary, 0.1);
+    }
+    
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+  
+  #clear-search {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: $text-muted;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 2px;
+    
+    &:hover {
+      background: $gray-100;
+      color: $text-secondary;
+    }
+  }
+}
+
+/* Table Wrapper */
+.table-wrapper {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
+  border: 1px solid $border-light;
+  border-radius: 4px;
+  scroll-behavior: smooth;
+  
+  @media (max-width: 768px) {
+    max-height: 400px;
+  }
+}
+
+/* Loading State */
+.table-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid $gray-200;
+    border-top: 3px solid $wp-primary;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+  
+  span {
+    color: $text-secondary;
+    font-size: 14px;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Table */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  th {
+    background: $gray-50;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: $text-primary;
+    border-bottom: 2px solid $border-medium;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 0 0 $border-medium;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: $border-medium;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    .table-wrapper.scrolled & {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      
+      &::after {
+        opacity: 1;
+      }
+    }
+    
+    &.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      
+      &:hover {
+        background: $gray-100;
+      }
+      
+      .sort-indicator {
+        margin-left: 4px;
+        color: $text-muted;
+        font-size: 12px;
+        
+        &.active {
+          color: $wp-primary;
+        }
+      }
+    }
+  }
+  
+  td {
+    padding: 12px 8px;
+    border-bottom: 1px solid $border-light;
+    vertical-align: middle;
+    background: $content-bg;
+    
+    &.column-currency {
+      text-align: right;
+      font-weight: 500;
+    }
+    
+    &.column-number {
+      text-align: center;
+    }
+    
+    &.column-image {
+      text-align: center;
+    }
+    
+    &.column-actions {
+      text-align: center;
+    }
+  }
+  
+  tbody tr {
+    &:hover {
+      background: $gray-50;
+      
+      td {
+        background: $gray-50;
+      }
+    }
+    
+    &:nth-child(even) {
+      background: rgba($gray-50, 0.5);
+      
+      td {
+        background: rgba($gray-50, 0.5);
+      }
+      
+      &:hover {
+        background: $gray-100;
+        
+        td {
+          background: $gray-100;
+        }
+      }
+    }
+  }
+}
+
+/* Table Content Types */
+.table-image {
+  max-width: 50px;
+  max-height: 50px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid $border-light;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  
+  button {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    
+    &.btn-edit {
+      &:hover {
+        background: rgba($wp-success, 0.1);
+      }
+    }
+    
+    &.btn-delete {
+      &:hover {
+        background: rgba($wp-danger, 0.1);
+      }
+    }
+  }
+}
+
+.table-error {
+  text-align: center;
+  padding: 40px 20px;
+  color: $text-secondary;
+  
+  .error-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .error-message {
+    font-size: 16px;
+  }
+}
+
+/* Empty State */
+.table-empty {
+  text-align: center;
+  padding: 60px 20px;
+  
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    color: $text-primary;
+    font-size: 20px;
+  }
+  
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: 14px;
+  }
+}
+
+/* Pagination */
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid $border-light;
+  background: $gray-50;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.pagination-info {
+  color: $text-secondary;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  
+  button {
+    padding: 6px 10px;
+    border: 1px solid $border-medium;
+    background: white;
+    color: $text-primary;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 36px;
+    height: 32px;
+    
+    &:hover:not(:disabled) {
+      background: $gray-100;
+      border-color: $text-secondary;
+    }
+    
+    &:disabled {
+      color: $text-muted;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    &.active {
+      background: $wp-primary;
+      color: white;
+      border-color: $wp-primary;
+    }
+  }
+}
+
+.page-numbers {
+  display: flex;
+  gap: 2px;
+  margin: 0 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-table {
+    font-size: 12px;
+    
+    th, td {
+      padding: 8px 4px;
+    }
+    
+    th {
+      font-size: 12px;
+    }
+  }
+  
+  .table-image {
+    max-width: 30px;
+    max-height: 30px;
+  }
+  
+  .table-actions {
+    flex-direction: column;
+    gap: 4px;
+    
+    button {
+      font-size: 14px;
+      padding: 2px 4px;
+    }
+  }
+}
+
+/* Scrollbar Styling */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: $gray-100;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: $gray-400;
+  border-radius: 4px;
+  border: 1px solid $gray-200;
+  
+  &:hover {
+    background: $gray-500;
+  }
+  
+  &:active {
+    background: $gray-600;
+  }
+}
+
+.table-wrapper::-webkit-scrollbar-corner {
+  background: $gray-100;
+}
+
+/* Firefox scrollbar styling */
+.table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: $gray-400 $gray-100;
+}
+
+/* Sticky Header Enhancement */
+.table-wrapper.scrolled {
+  .modern-table thead th {
+    background: rgba($gray-50, 0.95);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-bottom: 2px solid $wp-primary;
+  }
+} 

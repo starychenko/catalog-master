@@ -1,0 +1,36 @@
+/* Basic Reset for Catalog Master */
+
+.catalog-master-admin {
+  * {
+    box-sizing: border-box;
+  }
+  
+  // Reset margins for consistent spacing
+  h1, h2, h3, h4, h5, h6,
+  p, ul, ol, li {
+    margin-bottom: 0;
+  }
+  
+  // Remove default button styles
+  button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    
+    &:focus {
+      outline: 2px solid $wp-primary;
+      outline-offset: 2px;
+    }
+  }
+  
+  // Remove default link styles in admin context
+  a {
+    text-decoration: none;
+    
+    &:focus {
+      outline: 2px solid $wp-primary;
+      outline-offset: 2px;
+    }
+  }
+} 

@@ -1,0 +1,44 @@
+/* Card Components */
+
+.catalog-master-admin {
+  .catalog-master-card {
+    background: $content-bg;
+    border: 1px solid $border-light;
+    border-radius: $border-radius-md;
+    padding: $padding-xl;
+    margin-bottom: $margin-xl;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    
+    h3 {
+      margin-top: 0;
+      margin-bottom: $margin-lg;
+      font-size: $font-size-h3;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      border-bottom: 1px solid $border-light;
+      padding-bottom: $padding-sm;
+    }
+    
+    &--highlight {
+      border-color: $wp-primary;
+      border-width: 2px;
+    }
+    
+    &--success {
+      border-left: 4px solid $status-success;
+    }
+    
+    &--warning {
+      border-left: 4px solid $status-warning;
+    }
+    
+    &--error {
+      border-left: 4px solid $status-error;
+    }
+    
+    @include mobile-only {
+      padding: $padding-lg;
+      margin-bottom: $margin-lg;
+    }
+  }
+}

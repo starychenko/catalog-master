@@ -74,53 +74,94 @@ class CatalogMaster_Admin {
     
     public function enqueue_admin_scripts($hook) {
         if (strpos($hook, 'catalog-master') !== false) {
-            // Enqueue CSS
-            wp_enqueue_style('catalog-master-admin', CATALOG_MASTER_PLUGIN_URL . 'assets/css/admin.css', array(), CATALOG_MASTER_VERSION);
-            
-            // Enqueue JS
-            wp_enqueue_script('catalog-master-admin', CATALOG_MASTER_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), CATALOG_MASTER_VERSION, true);
-            
-            // Enqueue DataTables
-            wp_enqueue_style('datatables', 'https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css');
-            wp_enqueue_script('datatables', 'https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js', array('jquery'), '1.13.4', true);
-            
-            // Prepare existing data for JavaScript
+            // Vite integration
+            $vite_dev_server_url = 'http://localhost:5173'; // Default Vite dev server URL
+            $vite_base_path_in_dev_server = '/assets/src/'; // Path to source files within Vite's server
+            $vite_hot_file = CATALOG_MASTER_PLUGIN_PATH . 'hot'; // File indicating Vite dev server is running
+            $vite_manifest_path = CATALOG_MASTER_PLUGIN_PATH . 'assets/dist/.vite/manifest.json'; // Production manifest
+
+            CatalogMaster_Logger::debug('Vite integration check', array(
+                'hot_file_exists' => file_exists($vite_hot_file),
+                'manifest_exists' => file_exists($vite_manifest_path)
+            ));
+
+            if (file_exists($vite_hot_file)) {
+                // Development mode: Load from Vite dev server
+                wp_enqueue_script('vite-client', $vite_dev_server_url . '/@vite/client', array(), null, array('strategy' => 'defer', 'in_footer' => true));
+                wp_enqueue_script(
+                    'catalog-master-vite-main-js',
+                    $vite_dev_server_url . $vite_base_path_in_dev_server . 'main.js',
+                    array(),
+                    null,
+                    array('strategy' => 'defer', 'in_footer' => true)
+                );
+                
+                CatalogMaster_Logger::info('Vite development mode: Assets loaded from dev server');
+            } else {
+                // Production mode: Load from built assets
+                if (file_exists($vite_manifest_path)) {
+                    $manifest = json_decode(file_get_contents($vite_manifest_path), true);
+                    CatalogMaster_Logger::debug('Vite manifest loaded', $manifest);
+                    
+                    if (isset($manifest['assets/src/main.js'])) {
+                        $main_entry = $manifest['assets/src/main.js'];
+                        
+                        // Enqueue main JS (clean filename without hash)
+                        wp_enqueue_script(
+                            'catalog-master-vite-main-js',
+                            CATALOG_MASTER_PLUGIN_URL . 'assets/dist/' . $main_entry['file'],
+                            array(),
+                            CATALOG_MASTER_VERSION,
+                            array('strategy' => 'defer', 'in_footer' => true)
+                        );
+                        
+                        // Enqueue main CSS if exists (clean filename without hash)
+                        if (isset($main_entry['css'])) {
+                            foreach ($main_entry['css'] as $css_file) {
+                                wp_enqueue_style(
+                                    'catalog-master-vite-main-css',
+                                    CATALOG_MASTER_PLUGIN_URL . 'assets/dist/' . $css_file,
+                                    array(),
+                                    CATALOG_MASTER_VERSION
+                                );
+                            }
+                        }
+                        
+                        CatalogMaster_Logger::info('Vite production mode: Assets loaded from manifest (clean filenames)');
+                    } else {
+                        CatalogMaster_Logger::error('Vite manifest entry not found for assets/src/main.js');
+                    }
+                } else {
+                    CatalogMaster_Logger::error('Vite assets not found. Please run: npm run build');
+                    wp_die('Catalog Master: Assets not built. Please contact administrator.');
+                }
+            }
+
+            // Localize data for Vite version
             $localize_data = array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('catalog_master_nonce'),
                 'plugin_url' => CATALOG_MASTER_PLUGIN_URL,
-                'existing_mappings' => array(),
-                'google_headers' => array()
             );
+            wp_localize_script('catalog-master-vite-main-js', 'catalog_master_vite_params', $localize_data);
             
-            // Add existing mappings and headers if on edit page
-            if (isset($_GET['page']) && $_GET['page'] === 'catalog-master-edit' && isset($_GET['id'])) {
-                $catalog_id = intval($_GET['id']);
-                $mappings = CatalogMaster_Database::get_column_mapping($catalog_id);
-                
-                if (!empty($mappings)) {
-                    $google_headers = array();
-                    $existing_mappings = array();
-                    
-                    foreach ($mappings as $mapping) {
-                        $existing_mappings[] = array(
-                            'google_column' => $mapping->google_column,
-                            'catalog_column' => $mapping->catalog_column
-                        );
-                        // Collect unique Google headers
-                        if (!in_array($mapping->google_column, $google_headers)) {
-                            $google_headers[] = $mapping->google_column;
-                        }
-                    }
-                    
-                    $localize_data['existing_mappings'] = $existing_mappings;
-                    $localize_data['google_headers'] = $google_headers;
-                }
-            }
-            
-            // Localize script
-            wp_localize_script('catalog-master-admin', 'catalog_master_ajax', $localize_data);
+            // Ensure Vite enqueued scripts are treated as modules
+            add_filter('script_loader_tag', array($this, 'add_type_attribute_to_vite_scripts'), 10, 3);
         }
+    }
+    
+    /**
+     * Add type="module" attribute to Vite scripts
+     */
+    public function add_type_attribute_to_vite_scripts($tag, $handle, $src) {
+        if ('catalog-master-vite-main-js' === $handle || 'vite-client' === $handle) {
+            // For vite-client, defer might be beneficial. For main.js, it depends on execution timing needs.
+            // If main.js needs to run after DOM is ready, defer is fine.
+            // If it needs to run earlier or has inline dependencies, defer might not be suitable.
+            // WordPress default for 'in_footer' true is effectively defer.
+            return '<script type="module" src="' . esc_url($src) . '" id="' . esc_attr($handle) . '-js"'. ($handle === 'vite-client' ? ' defer' : '') .'></script>';
+        }
+        return $tag;
     }
     
     public function handle_form_submissions() {
@@ -529,25 +570,28 @@ class CatalogMaster_Admin {
                     <h3>Імпорт даних з Google Sheets</h3>
                     <p>Імпортуйте дані з Google Sheets в каталог. Існуючі дані будуть замінені.</p>
                     
-                    <?php if (empty($catalog->google_sheet_url)): ?>
-                        <div class="catalog-master-status warning">
-                            Спочатку вкажіть URL Google Sheets в налаштуваннях.
-                        </div>
-                    <?php elseif (empty($mappings)): ?>
-                        <div class="catalog-master-status warning">
-                            Спочатку налаштуйте відповідність стовпців.
-                        </div>
-                    <?php else: ?>
-                        <div class="catalog-master-status info">
-                            <strong>Google Sheets:</strong> <?php echo esc_html($catalog->google_sheet_url); ?><br>
-                            <strong>Аркуш:</strong> <?php echo esc_html($catalog->sheet_name); ?><br>
-                            <strong>Налаштовано відповідностей:</strong> <?php echo count($mappings); ?>
-                        </div>
-                        
-                        <button type="button" id="import-data" class="button button-primary" data-catalog-id="<?php echo $catalog->id; ?>">
-                            Імпортувати дані
-                        </button>
-                    <?php endif; ?>
+                    <!-- Import Content Container - JavaScript can update this entire container -->
+                    <div id="import-content-container">
+                        <?php if (empty($catalog->google_sheet_url)): ?>
+                            <div class="catalog-master-status warning">
+                                Спочатку вкажіть URL Google Sheets в налаштуваннях.
+                            </div>
+                        <?php elseif (empty($mappings)): ?>
+                            <div class="catalog-master-status warning">
+                                Спочатку налаштуйте відповідність стовпців.
+                            </div>
+                        <?php else: ?>
+                            <div class="catalog-master-status info">
+                                <strong>Google Sheets:</strong> <?php echo esc_html($catalog->google_sheet_url); ?><br>
+                                <strong>Аркуш:</strong> <?php echo esc_html($catalog->sheet_name); ?><br>
+                                <strong>Налаштовано відповідностей:</strong> <?php echo count($mappings); ?>
+                            </div>
+                            
+                            <button type="button" id="import-data" class="button button-primary" data-catalog-id="<?php echo $catalog->id; ?>">
+                                Імпортувати дані
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             
@@ -556,12 +600,14 @@ class CatalogMaster_Admin {
                 <div class="catalog-master-card">
                     <h3>Дані каталогу</h3>
                     
-                    <?php if ($items_count > 0): ?>
-                        <table id="catalog-items-table" class="display catalog-items-table" data-catalog-id="<?php echo $catalog->id; ?>">
-                            <!-- DataTable will be initialized by JavaScript -->
-                        </table>
-                    <?php else: ?>
-                        <div class="catalog-master-status info">
+                    <!-- Always create table element for DataTable initialization -->
+                    <table id="catalog-items-table" class="display catalog-items-table" data-catalog-id="<?php echo $catalog->id; ?>">
+                        <!-- DataTable will be initialized by JavaScript -->
+                    </table>
+                    
+                    <?php if ($items_count === 0): ?>
+                        <!-- Show info message only initially, DataTable will handle empty state -->
+                        <div id="no-data-message" class="catalog-master-status info" style="margin-top: 20px;">
                             В каталозі поки немає даних. Імпортуйте дані з Google Sheets.
                         </div>
                     <?php endif; ?>

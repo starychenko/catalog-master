@@ -8,18 +8,20 @@ const { execSync } = require('child_process');
 class WordPressPluginBuilder {
     constructor() {
         this.pluginName = 'catalog-master';
-        this.version = '1.0.0';
+        this.version = '1.1.0';
         this.outputDir = './dist';
         this.sourceDir = './';
         
         // Файли та папки для включення в архів
         this.includeFiles = [
-            'catalog-master.php'
+            'catalog-master.php',
+            'README.md',
+            'CHANGELOG.md'
         ];
         
         this.includeDirs = [
             'includes',
-            'assets'
+            'assets/dist'  // Тільки зібрані Vite файли
         ];
         
         // Файли та папки для виключення
@@ -31,17 +33,23 @@ class WordPressPluginBuilder {
             'build-plugin.js',
             'package.json',
             'package-lock.json',
+            'vite.config.js',
             'vendor',
-            'dist',
+            './dist',              // Виключити тільки корневу папку dist
             'docs',
             '.DS_Store',
             'Thumbs.db',
             '.env',
-            'ide-helper.php'
+            'ide-helper.php',
+            'assets/src',        // Виключити src файли
+            'VITE_MIGRATION_PLAN.md',
+            'VITE_SETUP_INSTRUCTIONS.md',
+            'VITE_MIGRATION_COMPLETE.md',
+            'hot'               // Vite hot file
         ];
         
         // Patterns for file extensions
-        this.excludeExtensions = ['.log'];
+        this.excludeExtensions = ['.log', '.map'];  // Виключити map файли
     }
 
     // Ініціалізація - створення необхідних папок
@@ -52,6 +60,18 @@ class WordPressPluginBuilder {
         if (!fs.existsSync(this.outputDir)) {
             fs.mkdirSync(this.outputDir, { recursive: true });
             console.log(`✅ Створено папку ${this.outputDir}`);
+        }
+    }
+
+    // Запуск Vite збірки
+    runViteBuild() {
+        console.log('🔧 Запуск Vite збірки...');
+        try {
+            execSync('npm run build', { stdio: 'inherit' });
+            console.log('✅ Vite збірка завершена успішно\n');
+        } catch (error) {
+            console.error('❌ Помилка Vite збірки:', error.message);
+            process.exit(1);
         }
     }
 
@@ -67,8 +87,15 @@ class WordPressPluginBuilder {
             hasErrors = true;
         }
         
+        // Перевірити Vite збірку
+        if (!fs.existsSync('assets/dist')) {
+            console.error('❌ Відсутня папка assets/dist - запустіть npm run build');
+            hasErrors = true;
+        }
+        
         // Перевірити обов'язкові папки
-        this.includeDirs.forEach(dir => {
+        const requiredDirs = ['includes'];
+        requiredDirs.forEach(dir => {
             if (!fs.existsSync(dir)) {
                 console.error(`❌ Відсутня папка: ${dir}`);
                 hasErrors = true;
@@ -101,6 +128,7 @@ class WordPressPluginBuilder {
     shouldExclude(filePath) {
         const fileName = path.basename(filePath);
         const fileExtension = path.extname(filePath);
+        const normalizedPath = filePath.replace(/\\/g, '/'); // Normalize path separators
         
         // Check exclude patterns
         const matchesPattern = this.excludePatterns.some(pattern => {
@@ -109,17 +137,33 @@ class WordPressPluginBuilder {
                 const regex = new RegExp(pattern.replace(/\*/g, '.*'));
                 return regex.test(fileName);
             }
-            return filePath.includes(pattern);
+            
+            // For ./dist only exclude root dist folder, not assets/dist
+            if (pattern === './dist') {
+                return normalizedPath === 'dist' || normalizedPath.startsWith('dist/');
+            }
+            
+            // For other patterns, check if file path contains pattern
+            return normalizedPath.includes(pattern);
         });
         
         // Check file extensions
         const matchesExtension = this.excludeExtensions.includes(fileExtension);
+        
+        if (matchesPattern || matchesExtension) {
+            console.log(`  🚫 Виключено: ${filePath}`);
+        }
         
         return matchesPattern || matchesExtension;
     }
 
     // Рекурсивне додавання файлів до архіву
     addFilesToArchive(archive, dirPath, archivePath = '') {
+        if (!fs.existsSync(dirPath)) {
+            console.log(`⚠️  Папка не знайдена: ${dirPath}`);
+            return;
+        }
+        
         const items = fs.readdirSync(dirPath);
         
         items.forEach(item => {
@@ -160,7 +204,6 @@ class WordPressPluginBuilder {
                 console.log(`\n✅ Архів створено успішно!`);
                 console.log(`📁 Файл: ${outputPath}`);
                 console.log(`📊 Розмір: ${sizeKB} KB`);
-                console.log(`📄 Файлів у архіві: ${archive.pointer() > 0 ? 'так' : 'ні'}`);
                 resolve(outputPath);
             });
             
@@ -235,7 +278,14 @@ class WordPressPluginBuilder {
     // Створення інсталяційних інструкцій
     createInstallInstructions(archivePath) {
         const instructions = `
-📥 ІНСТРУКЦІЇ ДЛЯ ВСТАНОВЛЕННЯ ПЛАГІНА CATALOG MASTER
+📥 ІНСТРУКЦІЇ ДЛЯ ВСТАНОВЛЕННЯ ПЛАГІНА CATALOG MASTER v${this.version}
+
+🚀 ОСОБЛИВОСТІ ВЕРСІЇ 1.1.0:
+   • Сучасна Vite архітектура
+   • Модульний JavaScript (ES6+)
+   • SCSS стилі з змінними
+   • Оптимізована збірка без map файлів
+   • Чисті назви файлів без хешів
 
 1️⃣ АВТОМАТИЧНЕ ВСТАНОВЛЕННЯ:
    • Увійдіть в адмін-панель WordPress
@@ -262,10 +312,18 @@ class WordPressPluginBuilder {
    • WordPress 5.0+
    • PHP 8.0+
    • MySQL 5.6+
+   • Сучасний браузер (підтримка ES6+)
 
-📚 ДОКУМЕНТАЦІЯ:
-   • Детальні інструкції в файлі README.md
-   • Підтримка: створіть issue в репозиторії
+📁 ФАЙЛИ В АРХІВІ:
+   • assets/dist/ - Оптимізовані Vite файли (CSS + JS)
+   • includes/ - PHP класи плагіна
+   • catalog-master.php - Головний файл плагіна
+
+⚡ ТЕХНІЧНІ ОСОБЛИВОСТІ:
+   • Чисті назви файлів: main.css, main.js
+   • Підтримка ES6+ модулів
+   • Legacy підтримка для старих браузерів
+   • Автоматичне Hot Module Replacement в розробці
 
 🎉 Готово! Плагін готовий до встановлення.
 `;
@@ -278,10 +336,14 @@ class WordPressPluginBuilder {
     // Головний метод збірки
     async build() {
         try {
-            console.log('🔨 ЗБІРКА WORDPRESS ПЛАГІНА CATALOG MASTER\n');
-            console.log('=' .repeat(50));
+            console.log('🔨 ЗБІРКА WORDPRESS ПЛАГІНА CATALOG MASTER v1.1.0\n');
+            console.log('=' .repeat(60));
             
             this.init();
+            
+            // Спочатку запустити Vite збірку
+            this.runViteBuild();
+            
             this.validateFiles();
             this.getPluginVersion();
             
@@ -296,10 +358,11 @@ class WordPressPluginBuilder {
             // Створити інструкції
             this.createInstallInstructions(mainArchive);
             
-            console.log('\n' + '=' .repeat(50));
+            console.log('\n' + '=' .repeat(60));
             console.log('🎉 ЗБІРКА ЗАВЕРШЕНА УСПІШНО!');
             console.log(`📁 Архіви збережено в папці: ${this.outputDir}`);
             console.log('🚀 Плагін готовий до встановлення в WordPress!');
+            console.log(`📊 Версія: ${this.version} (Vite Edition)`);
             
         } catch (error) {
             console.error('\n💥 ПОМИЛКА ЗБІРКИ:', error.message);
@@ -326,7 +389,7 @@ async function main() {
     
     if (args.includes('--help') || args.includes('-h')) {
         console.log(`
-🔨 WordPress Plugin Builder для Catalog Master
+🔨 WordPress Plugin Builder для Catalog Master v1.1.0
 
 ВИКОРИСТАННЯ:
   node build-plugin.js [опції]
@@ -337,7 +400,13 @@ async function main() {
 
 ПРИКЛАДИ:
   node build-plugin.js           # Створити архів плагіна
-  npm run build                  # Якщо додано в package.json
+  npm run build:plugin           # Рекомендований спосіб
+
+ПРОЦЕС ЗБІРКИ:
+  1. Запуск npm run build (Vite збірка)
+  2. Створення архіву з оптимізованими файлами
+  3. Виключення src файлів та map файлів
+  4. Генерація інструкцій встановлення
 
 ВИХІДНІ ФАЙЛИ:
   ./dist/catalog-master-v{версія}-{дата}.zip  # Основний архів
@@ -348,7 +417,7 @@ async function main() {
     }
     
     if (args.includes('--version') || args.includes('-v')) {
-        console.log('WordPress Plugin Builder v1.0.0');
+        console.log('WordPress Plugin Builder v1.1.0 (Vite Edition)');
         return;
     }
     

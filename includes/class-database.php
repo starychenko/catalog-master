@@ -313,10 +313,86 @@ class CatalogMaster_Database {
         return $wpdb->get_results($sql);
     }
     
-    public static function get_catalog_items_count($catalog_id) {
+    public static function get_catalog_items_count($catalog_id, $search = '') {
         global $wpdb;
         $table = $wpdb->prefix . 'catalog_master_items';
-        return $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE catalog_id = %d", $catalog_id));
+        
+        $where_clause = "WHERE catalog_id = %d";
+        $params = array($catalog_id);
+        
+        // Add search condition if provided
+        if (!empty($search)) {
+            $where_clause .= " AND (
+                product_name LIKE %s OR 
+                product_description LIKE %s OR 
+                category_name_1 LIKE %s OR 
+                category_name_2 LIKE %s OR 
+                category_name_3 LIKE %s OR 
+                product_id LIKE %s
+            )";
+            $search_term = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+        }
+        
+        $sql = "SELECT COUNT(*) FROM $table $where_clause";
+        return $wpdb->get_var($wpdb->prepare($sql, $params));
+    }
+    
+    /**
+     * Get catalog items with modern pagination, sorting and search
+     */
+    public static function get_catalog_items_modern($catalog_id, $limit = 25, $offset = 0, $search = '', $sort_column = 'product_id', $sort_direction = 'asc') {
+        global $wpdb;
+        $table = $wpdb->prefix . 'catalog_master_items';
+        
+        // Validate sort direction
+        $sort_direction = strtoupper($sort_direction) === 'DESC' ? 'DESC' : 'ASC';
+        
+        // Validate sort column (security)
+        $allowed_sort_columns = array(
+            'id', 'product_id', 'product_name', 'product_price', 'product_qty',
+            'product_sort_order', 'category_name_1', 'category_name_2', 'category_name_3'
+        );
+        
+        if (!in_array($sort_column, $allowed_sort_columns)) {
+            $sort_column = 'product_id';
+        }
+        
+        $where_clause = "WHERE catalog_id = %d";
+        $params = array($catalog_id);
+        
+        // Add search condition if provided
+        if (!empty($search)) {
+            $where_clause .= " AND (
+                product_name LIKE %s OR 
+                product_description LIKE %s OR 
+                category_name_1 LIKE %s OR 
+                category_name_2 LIKE %s OR 
+                category_name_3 LIKE %s OR 
+                product_id LIKE %s
+            )";
+            $search_term = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+            $params[] = $search_term;
+        }
+        
+        // Build the query
+        $sql = "SELECT * FROM $table $where_clause ORDER BY $sort_column $sort_direction";
+        
+        if ($limit > 0) {
+            $sql .= $wpdb->prepare(" LIMIT %d OFFSET %d", $limit, $offset);
+        }
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
     }
     
     public static function get_column_mapping($catalog_id) {

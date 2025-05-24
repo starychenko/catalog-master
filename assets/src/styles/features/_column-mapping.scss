@@ -1,0 +1,225 @@
+/* Column Mapping Feature Styles */
+
+.catalog-master-admin {
+  // Column status visualization
+  .column-status-legend {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $margin-lg;
+    padding: $padding-md;
+    background: $gray-50;
+    border-radius: $border-radius-sm;
+    
+    &-item {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-size-sm;
+    }
+    
+    &-color {
+      width: 16px;
+      height: 16px;
+      border-radius: $border-radius-sm;
+      
+      &.mapped {
+        background: $status-success;
+      }
+      
+      &.unmapped {
+        background: $status-error;
+      }
+      
+      &.available {
+        background: $status-info;
+      }
+    }
+  }
+  
+  // Column status container
+  .column-status-container {
+    margin-bottom: $margin-xl;
+    
+    &.column-status-compact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-xl;
+      
+      @include mobile-only {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+  
+  .column-status-section {
+    background: $content-bg;
+    border: 1px solid $border-light;
+    border-radius: $border-radius-md;
+    padding: $padding-lg;
+    
+    h4 {
+      margin-bottom: $margin-md;
+      font-size: $font-size-lg;
+      color: $text-primary;
+    }
+  }
+  
+  .column-status-summary {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $margin-md;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    
+    .count {
+      font-weight: $font-weight-semibold;
+      color: $wp-primary;
+    }
+    
+    .mapped-count {
+      color: $status-success;
+    }
+  }
+  
+  .column-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: $spacing-sm;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .column-status-item {
+    padding: $padding-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-xs;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    cursor: default;
+    
+    &.mapped {
+      background: $status-success-bg;
+      border-color: $status-success-border;
+      color: $status-success-text;
+      font-weight: $font-weight-medium;
+    }
+    
+    &.unmapped {
+      background: $status-error-bg;
+      border-color: $status-error-border;
+      color: $status-error-text;
+    }
+    
+    &.available {
+      background: $status-info-bg;
+      border-color: $status-info-border;
+      color: $status-info-text;
+    }
+    
+    &.animated {
+      animation: pulse-scale 0.3s ease;
+    }
+    
+    // Tooltip for mapped items
+    &[data-mapped-to]:after {
+      content: attr(data-mapped-to);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: $gray-800;
+      color: white;
+      padding: 4px 8px;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-xs;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+    
+    &[data-mapped-to]:hover:after {
+      opacity: 1;
+    }
+  }
+  
+  // Column mapping configuration
+  .column-mapping-container {
+    margin-top: $margin-xl;
+  }
+  
+  .column-mapping-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: $spacing-md;
+    padding: $padding-md;
+    background: $gray-100;
+    border-radius: $border-radius-sm $border-radius-sm 0 0;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-sm;
+    border: 1px solid $border-medium;
+    border-bottom: none;
+  }
+  
+  .column-mapping-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: $spacing-md;
+    padding: $padding-md;
+    border: 1px solid $border-medium;
+    border-top: none;
+    background: $content-bg;
+    
+    &:last-child {
+      border-radius: 0 0 $border-radius-sm $border-radius-sm;
+    }
+    
+    @include mobile-only {
+      grid-template-columns: 1fr;
+      gap: $spacing-sm;
+    }
+  }
+  
+  .column-mapping-select {
+    padding: $padding-sm;
+    border: 1px solid $border-medium;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    background: $content-bg;
+    
+    &:focus {
+      outline: none;
+      border-color: $wp-primary;
+      box-shadow: 0 0 0 2px rgba($wp-primary, 0.2);
+    }
+  }
+  
+  .remove-mapping-btn {
+    padding: $padding-sm $padding-md;
+    background: $wp-danger;
+    color: white;
+    border: none;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background: $wp-danger-hover;
+    }
+    
+    @include mobile-only {
+      justify-self: start;
+      width: auto;
+    }
+  }
+}
+
+// Animations
+@keyframes pulse-scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}

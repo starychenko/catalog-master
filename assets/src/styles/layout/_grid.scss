@@ -1,0 +1,46 @@
+/* Grid Layout Utilities */
+
+.catalog-master-admin {
+  .catalog-master-grid {
+    display: grid;
+    gap: $spacing-md;
+    
+    &--cols-2 {
+      grid-template-columns: 1fr 1fr;
+      
+      @include mobile-only {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    &--cols-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+      
+      @include tablet-only {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      @include mobile-only {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+  
+  .catalog-master-flex {
+    display: flex;
+    gap: $spacing-md;
+    
+    &--wrap {
+      flex-wrap: wrap;
+    }
+    
+    &--center {
+      align-items: center;
+      justify-content: center;
+    }
+    
+    &--between {
+      justify-content: space-between;
+    }
+  }
+} 

@@ -1,0 +1,74 @@
+/* Tab Components */
+
+.catalog-master-admin {
+  .catalog-master-tabs {
+    margin-bottom: $margin-xl;
+  }
+  
+  .catalog-master-tab-nav {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid $border-medium;
+    background: $gray-50;
+    border-radius: $border-radius-sm $border-radius-sm 0 0;
+    
+    li {
+      margin: 0;
+    }
+    
+    a {
+      display: block;
+      padding: $padding-md $padding-lg;
+      color: $text-secondary;
+      text-decoration: none;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      font-weight: $font-weight-medium;
+      
+      &:hover {
+        color: $wp-primary;
+        background: rgba($wp-primary, 0.05);
+      }
+      
+      &.active {
+        color: $wp-primary;
+        border-bottom-color: $wp-primary;
+        background: $content-bg;
+        font-weight: $font-weight-semibold;
+      }
+    }
+    
+    @include mobile-only {
+      flex-direction: column;
+      
+      a {
+        border-bottom: none;
+        border-left: 3px solid transparent;
+        
+        &.active {
+          border-left-color: $wp-primary;
+          border-bottom: none;
+        }
+      }
+    }
+  }
+  
+  .catalog-master-tab-content {
+    display: none;
+    padding: $padding-xl;
+    background: $content-bg;
+    border: 1px solid $border-medium;
+    border-top: none;
+    border-radius: 0 0 $border-radius-sm $border-radius-sm;
+    
+    &.active {
+      display: block;
+    }
+    
+    @include mobile-only {
+      padding: $padding-lg;
+    }
+  }
+}

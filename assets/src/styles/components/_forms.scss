@@ -1,0 +1,52 @@
+/* Form Components */
+
+.catalog-master-admin {
+  .catalog-master-form {
+    .form-group {
+      margin-bottom: $margin-lg;
+    }
+    
+    label {
+      display: block;
+      font-weight: $font-weight-medium;
+      margin-bottom: $margin-sm;
+      color: $text-primary;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: $padding-sm $padding-md;
+      border: 1px solid $border-medium;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-base;
+      transition: border-color 0.15s ease-in-out;
+      
+      &:focus {
+        outline: none;
+        border-color: $wp-primary;
+        box-shadow: 0 0 0 2px rgba($wp-primary, 0.2);
+      }
+      
+      &:disabled {
+        background: $gray-100;
+        color: $text-muted;
+        cursor: not-allowed;
+      }
+    }
+    
+    select {
+      cursor: pointer;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .form-help {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      margin-top: $margin-xs;
+    }
+  }
+} 

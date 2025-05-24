@@ -1,0 +1,123 @@
+/* Button Components */
+
+.catalog-master-btn {
+  display: inline-block;
+  padding: $padding-sm $padding-lg;
+  background: $wp-primary;
+  color: #fff;
+  text-decoration: none;
+  border-radius: $border-radius-sm;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  transition: background-color 0.15s ease-in-out;
+  
+  &:hover {
+    background: $wp-primary-hover;
+    color: #fff;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($wp-primary, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    
+    &:hover {
+      background: $wp-primary;
+    }
+  }
+  
+  // Button variants
+  &--success {
+    background: $wp-success;
+    
+    &:hover {
+      background: $wp-success-hover;
+    }
+  }
+  
+  &--danger {
+    background: $wp-danger;
+    
+    &:hover {
+      background: $wp-danger-hover;
+    }
+  }
+  
+  &--secondary {
+    background: $gray-500;
+    
+    &:hover {
+      background: $gray-600;
+    }
+  }
+  
+  &--outline {
+    background: transparent;
+    color: $wp-primary;
+    border: 1px solid $wp-primary;
+    
+    &:hover {
+      background: $wp-primary;
+      color: #fff;
+    }
+  }
+  
+  // Button sizes
+  &--small {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  &--large {
+    padding: $padding-md $padding-xl;
+    font-size: 14px;
+  }
+  
+  // Loading state
+  &--loading {
+    position: relative;
+    color: transparent;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+// Button groups
+.catalog-master-btn-group {
+  display: inline-flex;
+  
+  .catalog-master-btn {
+    &:not(:first-child) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    &:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+} 

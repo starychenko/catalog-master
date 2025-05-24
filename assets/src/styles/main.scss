@@ -1,0 +1,35 @@
+/* Catalog Master Admin Styles - SCSS Version */
+
+// Variables
+@import 'variables/colors';
+@import 'variables/spacing';
+@import 'variables/typography';
+@import 'variables/breakpoints';
+
+// Base styles
+@import 'base/reset';
+@import 'base/typography';
+
+// Layout
+@import 'layout/admin';
+@import 'layout/grid';
+
+// Components
+@import 'components/buttons';
+@import 'components/forms';
+@import 'components/cards';
+@import 'components/tabs';
+@import 'components/modals';
+@import 'components/messages';
+@import 'components/spinner';
+
+// Specific features
+@import 'features/column-mapping';
+@import 'features/data-table';
+@import 'features/modern-table';
+@import 'features/export-options';
+@import 'features/import-progress';
+
+// Utilities
+@import 'utilities/helpers';
+@import 'utilities/responsive'; 

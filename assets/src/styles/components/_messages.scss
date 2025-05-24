@@ -1,0 +1,48 @@
+/* Message Components */
+
+.catalog-master-admin {
+  .catalog-master-status {
+    padding: $padding-md $padding-lg;
+    border-radius: $border-radius-sm;
+    margin: $margin-md 0;
+    font-size: $font-size-sm;
+    line-height: $line-height-relaxed;
+    
+    &.success {
+      background: $status-success-bg;
+      border-left: 4px solid $status-success;
+      color: $status-success-text;
+    }
+    
+    &.error {
+      background: $status-error-bg;
+      border-left: 4px solid $status-error;
+      color: $status-error-text;
+    }
+    
+    &.warning {
+      background: $status-warning-bg;
+      border-left: 4px solid $status-warning;
+      color: $status-warning-text;
+    }
+    
+    &.info {
+      background: $status-info-bg;
+      border-left: 4px solid $status-info;
+      color: $status-info-text;
+    }
+    
+    strong {
+      font-weight: $font-weight-semibold;
+    }
+    
+    a {
+      color: inherit;
+      text-decoration: underline;
+      
+      &:hover {
+        text-decoration: none;
+      }
+    }
+  }
+}

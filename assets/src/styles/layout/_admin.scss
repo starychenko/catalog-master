@@ -1,0 +1,68 @@
+/* WordPress Admin Layout Styles */
+
+.catalog-master-admin {
+  // Base admin container
+  .wrap {
+    margin: 10px 20px 0 2px;
+  }
+  
+  // Card-like containers
+  .catalog-master-card {
+    background: $content-bg;
+    border: 1px solid $border-light;
+    border-radius: $border-radius-md;
+    padding: $padding-xl;
+    margin-bottom: $margin-xl;
+    
+    h3 {
+      margin-top: 0;
+      margin-bottom: $margin-lg;
+      font-size: $font-size-h3;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+    }
+  }
+  
+  // Status messages
+  .catalog-master-status {
+    padding: $padding-md $padding-lg;
+    border-radius: $border-radius-sm;
+    margin: $margin-md 0;
+    
+    &.success {
+      background: $status-success-bg;
+      border-left: 4px solid $status-success;
+      color: $status-success-text;
+    }
+    
+    &.error {
+      background: $status-error-bg;
+      border-left: 4px solid $status-error;
+      color: $status-error-text;
+    }
+    
+    &.warning {
+      background: $status-warning-bg;
+      border-left: 4px solid $status-warning;
+      color: $status-warning-text;
+    }
+    
+    &.info {
+      background: $status-info-bg;
+      border-left: 4px solid $status-info;
+      color: $status-info-text;
+    }
+  }
+  
+  // Responsive adjustments
+  @include mobile-only {
+    .wrap {
+      margin: 10px 10px 0 0;
+    }
+    
+    .catalog-master-card {
+      padding: $padding-lg;
+      margin-bottom: $margin-lg;
+    }
+  }
+} 

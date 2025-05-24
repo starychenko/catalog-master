@@ -1,0 +1,61 @@
+/* Responsive Utilities */
+
+.catalog-master-admin {
+  // Mobile visibility
+  .d-mobile-none {
+    @include mobile-only {
+      display: none !important;
+    }
+  }
+  
+  .d-mobile-block {
+    @include mobile-only {
+      display: block !important;
+    }
+  }
+  
+  .d-mobile-flex {
+    @include mobile-only {
+      display: flex !important;
+    }
+  }
+  
+  // Tablet visibility
+  .d-tablet-none {
+    @include tablet-only {
+      display: none !important;
+    }
+  }
+  
+  .d-tablet-block {
+    @include tablet-only {
+      display: block !important;
+    }
+  }
+  
+  // Desktop visibility
+  .d-desktop-none {
+    @include desktop-up {
+      display: none !important;
+    }
+  }
+  
+  .d-desktop-block {
+    @include desktop-up {
+      display: block !important;
+    }
+  }
+  
+  // Mobile text alignment
+  .text-mobile-center {
+    @include mobile-only {
+      text-align: center !important;
+    }
+  }
+  
+  .text-mobile-left {
+    @include mobile-only {
+      text-align: left !important;
+    }
+  }
+}

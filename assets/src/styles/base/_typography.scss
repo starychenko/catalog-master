@@ -1,0 +1,39 @@
+/* Typography Base Styles */
+
+.catalog-master-admin {
+  font-family: $font-family-sans;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: $text-primary;
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    margin-bottom: $margin-md;
+  }
+  
+  h1 { font-size: $font-size-h1; }
+  h2 { font-size: $font-size-h2; }
+  h3 { font-size: $font-size-h3; }
+  h4 { font-size: $font-size-h4; }
+  h5 { font-size: $font-size-h5; }
+  h6 { font-size: $font-size-h6; }
+  
+  p {
+    margin-bottom: $margin-md;
+    line-height: $line-height-relaxed;
+  }
+  
+  small {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+  
+  code {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    background: $gray-100;
+    padding: 2px 4px;
+    border-radius: $border-radius-sm;
+  }
+} 
