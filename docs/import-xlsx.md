@@ -6,16 +6,17 @@
 
 ## Формат Google Sheets
 
-- Підтримується лише **XLSX** (експорт Google Sheets)
-- Формат посилання:  
-  `https://docs.google.com/spreadsheets/d/ID/export?format=xlsx&gid=0`
-- CSV не рекомендується, використовується лише як fallback
+- Підтримується **XLSX** (експорт Google Sheets)
+- **Ви можете використовувати звичайні посилання на Google Sheets!**
+- Плагін автоматично конвертує будь-яке посилання в правильний XLSX формат
 
 ## Як імпортувати
 
 1. В Google Sheets: Файл → Поділитися → Доступ за посиланням ("Будь-хто з посиланням")
-2. Скопіюйте ID таблиці та сформуйте посилання для експорту:
-   - `https://docs.google.com/spreadsheets/d/ID/export?format=xlsx&gid=0`
+2. Скопіюйте **звичайне посилання** на вашу таблицю, наприклад:
+   - `https://docs.google.com/spreadsheets/d/ID/edit#gid=0`
+   - `https://docs.google.com/spreadsheets/d/ID/`
+   - Або навіть експорт URL: `https://docs.google.com/spreadsheets/d/ID/export?format=xlsx&gid=0`
 3. Вставте це посилання у поле "Google Sheets URL" в Catalog Master
 4. Вкажіть назву аркуша (Sheet1, якщо не змінювали)
 5. Налаштуйте відповідність стовпців
@@ -27,6 +28,14 @@
 - Коректно імпортуються числа, текст, спецсимволи
 - Всі дані зберігаються у вигляді, максимально наближеному до оригіналу
 
+## Автоматична конвертація
+
+Плагін розпізнає такі формати посилань:
+- Звичайні посилання: `https://docs.google.com/spreadsheets/d/ID/edit#gid=0`
+- Прямі посилання: `https://docs.google.com/spreadsheets/d/ID/`
+- Експорт посилання: `https://docs.google.com/spreadsheets/d/ID/export?format=xlsx&gid=0`
+- Застарілі формати з `key=` або `id=`
+
 ## Вимоги
 
 - Таблиця має бути доступна для читання ("Будь-хто з посиланням")
@@ -34,12 +43,23 @@
 
 ## Типові помилки
 
-- ❌ Неправильний формат посилання (має бути `format=xlsx`)
 - ❌ Недостатньо прав доступу (закрита таблиця)
 - ❌ Пошкоджений XLSX (Google Sheets має бути "живим" документом)
+- ❌ Неправильний ID таблиці в посиланні
 
-## Приклад посилання
+## Приклади посилань
 
+**Звичайне посилання (рекомендовано):**
+```
+https://docs.google.com/spreadsheets/d/1DE7W63SlIe7ZyutDh25Z7IdV0Z33hK6ZlSUc6-yXRFo/edit#gid=0
+```
+
+**Пряме посилання:**
+```
+https://docs.google.com/spreadsheets/d/1DE7W63SlIe7ZyutDh25Z7IdV0Z33hK6ZlSUc6-yXRFo/
+```
+
+**Експорт посилання (теж працює):**
 ```
 https://docs.google.com/spreadsheets/d/1DE7W63SlIe7ZyutDh25Z7IdV0Z33hK6ZlSUc6-yXRFo/export?format=xlsx&gid=0
 ```

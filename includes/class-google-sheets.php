@@ -73,13 +73,24 @@ class CatalogMaster_GoogleSheets {
     }
     
     /**
-     * Convert Google Sheets URL to XLSX export URL
+     * Convert Google Sheets URL to XLSX export URL (improved - supports regular sheet URLs)
      */
     private static function convert_to_xlsx_url($url, $sheet_name) {
+        CatalogMaster_Logger::info('🔗 Converting URL to XLSX format', array(
+            'original_url' => $url,
+            'sheet_name' => $sheet_name
+        ));
+        
         // Extract spreadsheet ID from various Google Sheets URL formats
         $patterns = array(
+            // Regular sharing URLs: https://docs.google.com/spreadsheets/d/ID/edit#gid=0
+            '/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)\/edit/',
+            // Direct spreadsheet URLs: https://docs.google.com/spreadsheets/d/ID/
             '/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/',
+            // Export URLs (already formatted): https://docs.google.com/spreadsheets/d/ID/export
+            '/\/d\/([a-zA-Z0-9-_]+)\/export/',
             '/\/d\/([a-zA-Z0-9-_]+)/',
+            // Legacy formats
             '/key=([a-zA-Z0-9-_]+)/',
             '/id=([a-zA-Z0-9-_]+)/'
         );
@@ -88,22 +99,42 @@ class CatalogMaster_GoogleSheets {
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $url, $matches)) {
                 $spreadsheet_id = $matches[1];
+                CatalogMaster_Logger::debug('✅ Extracted spreadsheet ID', array(
+                    'pattern' => $pattern,
+                    'spreadsheet_id' => $spreadsheet_id
+                ));
                 break;
             }
         }
         
         if (!$spreadsheet_id) {
+            CatalogMaster_Logger::error('❌ Could not extract spreadsheet ID from URL', array(
+                'url' => $url
+            ));
             return false;
         }
         
-        // Get sheet ID if specific sheet name is provided
+        // Extract GID from URL if present
         $gid = 0;
-        if ($sheet_name !== 'Sheet1') {
+        if (preg_match('/[#&]gid=([0-9]+)/', $url, $gid_matches)) {
+            $gid = intval($gid_matches[1]);
+            CatalogMaster_Logger::debug('✅ Extracted GID from URL', array('gid' => $gid));
+        } elseif ($sheet_name !== 'Sheet1') {
+            // If specific sheet name provided but no GID in URL, try to get it
             $gid = self::get_sheet_gid($spreadsheet_id, $sheet_name);
         }
         
-        // Build XLSX export URL - much better than CSV!
-        return "https://docs.google.com/spreadsheets/d/{$spreadsheet_id}/export?format=xlsx&gid={$gid}";
+        // Build XLSX export URL
+        $xlsx_url = "https://docs.google.com/spreadsheets/d/{$spreadsheet_id}/export?format=xlsx&gid={$gid}";
+        
+        CatalogMaster_Logger::info('🎯 URL converted successfully', array(
+            'original_url' => $url,
+            'xlsx_url' => $xlsx_url,
+            'spreadsheet_id' => $spreadsheet_id,
+            'gid' => $gid
+        ));
+        
+        return $xlsx_url;
     }
     
     /**

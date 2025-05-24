@@ -342,7 +342,7 @@ class CatalogMaster_Admin {
                         <th scope="row"><label for="google_sheet_url">URL Google Sheets</label></th>
                         <td>
                             <input type="url" id="google_sheet_url" name="google_sheet_url" class="large-text">
-                            <p class="description">Посилання на Google Sheets таблицю</p>
+                            <p class="description">Вставте звичайне посилання на Google Sheets таблицю (плагін автоматично конвертує його в XLSX формат)</p>
                         </td>
                     </tr>
                     <tr>
@@ -419,6 +419,7 @@ class CatalogMaster_Admin {
                                 <td>
                                     <input type="url" id="google_sheet_url" name="google_sheet_url" class="large-text" value="<?php echo esc_attr($catalog->google_sheet_url); ?>">
                                     <button type="button" id="test-sheets-connection" class="button button-secondary" style="margin-left: 10px;">Перевірити підключення</button>
+                                    <p class="description">Вставте звичайне посилання на Google Sheets таблицю (плагін автоматично конвертує його в XLSX формат)</p>
                                 </td>
                             </tr>
                             <tr>
