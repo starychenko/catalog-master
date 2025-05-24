@@ -546,13 +546,40 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    // Open download in new window
-                    window.open(response.data.download_url);
+                    // Determine which URL to open based on format
+                    var urlToOpen;
+                    var isFileDownload = false;
                     
-                    // Show feed URL
+                    if (format === 'csv' || format === 'excel') {
+                        // Files for download - use download URL
+                        urlToOpen = response.data.download_url;
+                        isFileDownload = true;
+                    } else if (format === 'json' || format === 'xml') {
+                        // Web feeds - use feed URL
+                        urlToOpen = response.data.feed_url;
+                        isFileDownload = false;
+                    } else {
+                        // Fallback - use download URL
+                        urlToOpen = response.data.download_url;
+                        isFileDownload = true;
+                    }
+                    
+                    // Open appropriate URL
+                    window.open(urlToOpen);
+                    
+                    // Show feed URL for reference (always useful)
                     var feedHtml = '<div class="catalog-master-status info">' +
-                        '<strong>Feed URL:</strong> <a href="' + response.data.feed_url + '" target="_blank">' + response.data.feed_url + '</a>' +
-                        '</div>';
+                        '<strong>Feed URL:</strong> <a href="' + response.data.feed_url + '" target="_blank">' + response.data.feed_url + '</a>';
+                    
+                    // For file downloads, also show download URL
+                    if (isFileDownload) {
+                        feedHtml += '<br><strong>Download URL:</strong> <a href="' + response.data.download_url + '" target="_blank">' + response.data.download_url + '</a>';
+                    }
+                    
+                    feedHtml += '</div>';
+                    
+                    // Remove previous status messages of this type
+                    $('.catalog-master-status.info').remove();
                     $('.export-options').after(feedHtml);
                 } else {
                     catalogMaster.showMessage(response.data, 'error');
