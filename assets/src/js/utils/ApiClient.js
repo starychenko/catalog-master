@@ -65,29 +65,61 @@ export default class ApiClient {
         }
         
         try {
-            const response = await fetch(this.ajaxUrl, {
+            const httpResponse = await fetch(this.ajaxUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin'
             });
             
-            console.log('📡 Fetch response status:', response.status);
+            console.log('📡 Fetch response status:', httpResponse.status);
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (!httpResponse.ok) {
+                let errorText = `HTTP error! status: ${httpResponse.status}`;
+                try {
+                    const responseBody = await httpResponse.text();
+                    errorText += ` - ${responseBody.substring(0, 200)}`; // Include part of the response
+                } catch (e) {
+                    // Ignore if can't read body
+                }
+                throw new Error(errorText);
             }
             
-            const result = await response.json();
+            let result;
+            try {
+                result = await httpResponse.json();
+            } catch (e) {
+                const responseText = await httpResponse.text().catch(() => "Could not read response text.");
+                console.error('❌ AJAX Error: Response is not valid JSON.', { status: httpResponse.status, responseTextPreview: responseText.substring(0, 500) });
+                throw new Error(`Server returned non-JSON response (status ${httpResponse.status}). Check console for response preview.`);
+            }
+
             console.log('📥 AJAX Result:', result);
+
+            if (typeof result !== 'object' || result === null) {
+                console.error('❌ AJAX Error: Parsed result is not an object.', { result });
+                throw new Error('Invalid response structure from server.');
+            }
+            
+            if (!result.hasOwnProperty('success')) {
+                console.error('❌ AJAX Error: Response missing "success" property.', { result });
+                throw new Error('Malformed response from server: missing "success" flag.');
+            }
             
             if (!result.success) {
-                throw new Error(result.data || 'Unknown error');
+                const errorMessage = (typeof result.data === 'string' && result.data) ? result.data : 
+                                     (result.data && typeof result.data.message === 'string' && result.data.message) ? result.data.message :
+                                     'Unknown API error';
+                throw new Error(errorMessage);
             }
             
-            return result.data;
+            return result.data !== undefined ? result.data : {};
         } catch (error) {
-            console.error('❌ AJAX Error:', error);
-            throw error;
+            console.error('❌ AJAX Error in request method:', { action, error: error.message, stack: error.stack });
+            if (error instanceof Error) {
+                throw error;
+            } else {
+                throw new Error(String(error));
+            }
         }
     }
     
@@ -124,9 +156,12 @@ export default class ApiClient {
     /**
      * Import data from Google Sheets
      */
-    async importData(catalogId) {
+    async importData(catalogId, offset, batchSize, isFirstBatch) {
         return this.request('catalog_master_import_data', {
-            catalog_id: catalogId
+            catalog_id: catalogId,
+            offset: offset,
+            batch_size: batchSize,
+            is_first_batch: isFirstBatch ? 1 : 0 // Send as 1 or 0
         });
     }
     

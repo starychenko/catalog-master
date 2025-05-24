@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
 
 class CatalogMaster_Ajax {
     
+    const IMPORT_BATCH_SIZE = 25; // Number of rows to process per batch
+    
     public function __construct() {
         add_action('wp_ajax_catalog_master_test_sheets_connection', array($this, 'test_sheets_connection'));
         add_action('wp_ajax_catalog_master_get_sheets_headers', array($this, 'get_sheets_headers'));
@@ -144,36 +146,101 @@ class CatalogMaster_Ajax {
         }
         
         $catalog_id = intval($_POST['catalog_id']);
+        $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
+        $batch_size = isset($_POST['batch_size']) ? intval($_POST['batch_size']) : self::IMPORT_BATCH_SIZE;
+        $is_first_batch = isset($_POST['is_first_batch']) ? boolval($_POST['is_first_batch']) : false;
         
         if (!$catalog_id) {
             wp_send_json_error('Невірний ID каталогу');
         }
         
-        // Get catalog info
         $catalog = CatalogMaster_Database::get_catalog($catalog_id);
         if (!$catalog) {
             wp_send_json_error('Каталог не знайдено');
         }
         
-        // Get column mappings
         $mappings = CatalogMaster_Database::get_column_mapping($catalog_id);
         if (empty($mappings)) {
             wp_send_json_error('Спочатку налаштуйте відповідність стовпців');
         }
-        
-        // Import data
-        $result = CatalogMaster_GoogleSheets::import_catalog_data(
-            $catalog_id,
-            $catalog->google_sheet_url,
-            $catalog->sheet_name,
-            $mappings
-        );
-        
-        if (isset($result['error'])) {
-            wp_send_json_error($result['error']);
+
+        $transient_data_key = 'cm_import_data_' . $catalog_id;
+        $transient_total_key = 'cm_import_total_' . $catalog_id;
+        $transient_img_cache_key = 'cm_import_img_cache_' . $catalog_id;
+
+        $all_data_rows = null;
+        $headers = null;
+        $total_items_in_sheet = 0;
+        $processed_category_image_urls_cache = array();
+
+        if ($is_first_batch) {
+            CatalogMaster_Logger::info("Import: First batch for catalog {$catalog_id}");
+            $import_result = CatalogMaster_GoogleSheets::import_from_url($catalog->google_sheet_url, $catalog->sheet_name);
+            if (isset($import_result['error'])) {
+                wp_send_json_error($import_result['error']);
+                return;
+            }
+            $headers = $import_result['headers'];
+            $all_data_rows = $import_result['data'];
+            $total_items_in_sheet = count($all_data_rows);
+
+            set_transient($transient_data_key, array('headers' => $headers, 'rows' => $all_data_rows), HOUR_IN_SECONDS);
+            set_transient($transient_total_key, $total_items_in_sheet, HOUR_IN_SECONDS);
+            set_transient($transient_img_cache_key, array(), HOUR_IN_SECONDS); // Initialize image cache
+
+            CatalogMaster_Database::clear_catalog_items($catalog_id);
+            CatalogMaster_Logger::info("Import: Cleared items for catalog {$catalog_id}. Total items from sheet: {$total_items_in_sheet}");
         } else {
-            wp_send_json_success($result);
+            $cached_data = get_transient($transient_data_key);
+            $total_items_in_sheet = get_transient($transient_total_key);
+            $processed_category_image_urls_cache = get_transient($transient_img_cache_key) ?: array();
+
+            if ($cached_data === false || $total_items_in_sheet === false) {
+                wp_send_json_error('Помилка сесії імпорту. Спробуйте знову.');
+                return;
+            }
+            $headers = $cached_data['headers'];
+            $all_data_rows = $cached_data['rows'];
         }
+
+        $current_chunk_of_rows = array_slice($all_data_rows, $offset, $batch_size);
+
+        if (empty($current_chunk_of_rows)) {
+            delete_transient($transient_data_key);
+            delete_transient($transient_total_key);
+            delete_transient($transient_img_cache_key);
+            wp_send_json_success(array(
+                'message' => 'Імпорт завершено. Оброблено всі рядки.',
+                'is_complete' => true,
+                'processed_in_this_batch' => 0,
+                'total_items_in_sheet' => $total_items_in_sheet,
+            ));
+            return;
+        }
+
+        $processing_result = CatalogMaster_GoogleSheets::process_data_chunk_for_import($current_chunk_of_rows, $headers, $mappings, $catalog_id, $processed_category_image_urls_cache);
+        
+        CatalogMaster_Database::insert_catalog_items($catalog_id, $processing_result['items_for_db']);
+        set_transient($transient_img_cache_key, $processing_result['updated_image_cache'], HOUR_IN_SECONDS); // Save updated image cache
+
+        $next_offset = $offset + count($current_chunk_of_rows); // Use actual count of rows in chunk
+        $is_complete = ($next_offset >= $total_items_in_sheet);
+
+        if ($is_complete) {
+            delete_transient($transient_data_key);
+            delete_transient($transient_total_key);
+            delete_transient($transient_img_cache_key);
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Пакет оброблено: ' . count($processing_result['items_for_db']) . ' записів.',
+            'processed_in_this_batch' => count($processing_result['items_for_db']),
+            'total_items_in_sheet' => $total_items_in_sheet,
+            'is_complete' => $is_complete,
+            'next_offset' => $next_offset,
+            'current_offset' => $offset, // For debugging/logging on client
+            'errors_in_batch' => $processing_result['errors_count']
+        ));
     }
     
     /**

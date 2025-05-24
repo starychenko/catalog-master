@@ -8,6 +8,11 @@ export default class ImportManager {
     constructor(api, state) {
         this.api = api;
         this.state = state;
+        this.currentCatalogId = null;
+        this.totalItemsToProcess = 0;
+        this.totalItemsProcessed = 0;
+        this.batchSize = 25; // Number of items to process per batch
+        this.progressContainer = null;
     }
     
     init() {
@@ -26,76 +31,100 @@ export default class ImportManager {
     }
     
     /**
-     * Import data from Google Sheets
+     * Start the import process
      */
     async importData(e) {
         e.preventDefault();
         
         const btn = e.target;
-        const catalogId = btn.getAttribute('data-catalog-id');
+        this.currentCatalogId = btn.getAttribute('data-catalog-id');
         const originalText = btn.textContent;
         
         setButtonLoading(btn, true, originalText);
         
         // Show progress indicator
-        const progressContainer = this.createProgressIndicator();
-        btn.parentNode.insertBefore(progressContainer, btn.nextSibling);
+        this.progressContainer = this.createProgressIndicator();
+        btn.parentNode.insertBefore(this.progressContainer, btn.nextSibling);
         
-        // Animate progress
-        setTimeout(() => {
-            const progressFill = progressContainer.querySelector('.import-progress-fill');
-            if (progressFill) {
-                progressFill.style.width = '50%';
-            }
-        }, 500);
+        this.totalItemsToProcess = 0;
+        this.totalItemsProcessed = 0;
+        
+        // Start with the first batch
+        this.processBatch(0, originalText, btn);
+    }
+
+    /**
+     * Process a single batch of data
+     */
+    async processBatch(offset, originalButtonText, buttonElement) {
+        if (!this.currentCatalogId) {
+            showMessage('Catalog ID not found.', 'error');
+            this.cleanupImport(buttonElement, originalButtonText);
+            return;
+        }
+
+        const isFirstBatch = offset === 0;
         
         try {
-            const response = await this.api.importData(catalogId);
-            
-            // Complete progress animation
-            const progressFill = progressContainer.querySelector('.import-progress-fill');
-            if (progressFill) {
-                progressFill.style.width = '100%';
+            const response = await this.api.importData(
+                this.currentCatalogId,
+                offset,
+                this.batchSize,
+                isFirstBatch
+            );
+
+            if (isFirstBatch && response.total_items_in_sheet !== undefined) {
+                this.totalItemsToProcess = response.total_items_in_sheet;
+            }
+
+            this.totalItemsProcessed += response.processed_in_this_batch || 0;
+            this.updateProgressIndicator(response.message);
+
+            if (response.is_complete) {
+                // Import finished
+                this.updateProgressIndicator('Імпорт завершено!', true);
+                setTimeout(() => {
+                    showMessage(response.message || 'Імпорт успішно завершено.', 'success');
+                    this.cleanupImport(buttonElement, originalButtonText);
+                    this.refreshDataAndSwitchTab();
+                }, 1000);
+            } else {
+                // Process next batch
+                this.processBatch(response.next_offset, originalButtonText, buttonElement);
             }
             
-            setTimeout(() => {
-                showMessage(response.message, 'success');
-                
-                // Hide "no data" message if it exists
-                const noDataMessage = document.getElementById('no-data-message');
-                if (noDataMessage) {
-                    noDataMessage.style.display = 'none';
-                    console.log('📥 Hidden "no data" message');
-                }
-                
-                // Refresh DataTable if exists and is accessible via global state
-                if (this.state.app && this.state.app.components && this.state.app.components.dataTable) {
-                    console.log('📥 Reloading DataTable after import');
-                    this.state.app.components.dataTable.reload();
-                }
-                
-                // Update global state to trigger data refresh
-                if (this.state.app && this.state.app.updateState) {
-                    this.state.app.updateState('dataRefresh', true);
-                }
-                
-                // Switch to data tab to show imported data
-                const dataTabLink = document.querySelector('a[href="#tab-data"]');
-                if (dataTabLink) {
-                    setTimeout(() => {
-                        console.log('📥 Switching to data tab to show imported data');
-                        dataTabLink.click();
-                    }, 500);
-                }
-                
-                progressContainer.remove();
-            }, 1000);
-            
         } catch (error) {
-            showMessage('Помилка імпорту', 'error');
-            progressContainer.remove();
-        } finally {
-            setButtonLoading(btn, false, originalText);
+            console.error('❌ Import error in ImportManager:', { message: error.message, stack: error.stack, errorObject: error });
+            showMessage(`Помилка імпорту: ${error.message || 'Невідома помилка. Див. консоль.'}`, 'error');
+            this.updateProgressIndicator(`Помилка: ${error.message}`, false, true);
+            this.cleanupImport(buttonElement, originalButtonText);
+        }
+    }
+
+    /**
+     * Update progress indicator element
+     */
+    updateProgressIndicator(message = '', isComplete = false, isError = false) {
+        if (!this.progressContainer) return;
+
+        const progressText = this.progressContainer.querySelector('div:first-child');
+        const progressFill = this.progressContainer.querySelector('.import-progress-fill');
+
+        if (progressText) {
+            if (this.totalItemsToProcess > 0 && !isError) {
+                progressText.textContent = `Обробка: ${this.totalItemsProcessed} / ${this.totalItemsToProcess}. ${message}`;
+            } else {
+                progressText.textContent = message;
+            }
+        }
+
+        if (progressFill) {
+            let percentage = 0;
+            if (this.totalItemsToProcess > 0 && !isError) {
+                percentage = (this.totalItemsProcessed / this.totalItemsToProcess) * 100;
+            }
+            if (isComplete && !isError) percentage = 100;
+            progressFill.style.width = `${Math.min(percentage, 100)}%`;
         }
     }
     
@@ -106,12 +135,39 @@ export default class ImportManager {
         const progressContainer = document.createElement('div');
         progressContainer.className = 'import-progress';
         progressContainer.innerHTML = `
-            <div>Імпорт даних з Google Sheets...</div>
+            <div>Ініціалізація імпорту...</div>
             <div class="import-progress-bar">
                 <div class="import-progress-fill"></div>
             </div>
         `;
         return progressContainer;
+    }
+
+    /**
+     * Cleanup after import (success or failure)
+     */
+    cleanupImport(buttonElement, originalButtonText) {
+        if (buttonElement) {
+            setButtonLoading(buttonElement, false, originalButtonText);
+        }
+        // Optionally remove progress bar after a delay, or keep it if error
+        // For now, let's remove it after 5s if not an error
+        setTimeout(() => {
+            if (this.progressContainer && !this.progressContainer.querySelector('div:first-child').textContent.toLowerCase().includes('помилка')) {
+                 this.progressContainer.remove();
+                 this.progressContainer = null;
+            }
+        }, 5000);
+    }
+
+    refreshDataAndSwitchTab() {
+        if (this.state.app && this.state.app.components && this.state.app.components.dataTable) {
+            this.state.app.components.dataTable.reload();
+        }
+        const dataTabLink = document.querySelector('a[href="#tab-data"]');
+        if (dataTabLink) {
+            setTimeout(() => dataTabLink.click(), 500);
+        }
     }
     
     /**

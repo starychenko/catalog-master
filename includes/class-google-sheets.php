@@ -9,8 +9,6 @@ if (!defined('ABSPATH')) {
 
 class CatalogMaster_GoogleSheets {
     
-    private static $processed_category_image_urls = [];
-    
     /**
      * Get data from Google Sheets XLSX export (improved method)
      */
@@ -470,161 +468,113 @@ class CatalogMaster_GoogleSheets {
     }
     
     /**
-     * Import data with image downloading and enhanced error handling
+     * Process a chunk of data for import, including mapping and image downloading.
+     *
+     * @param array $rows_to_process_in_batch The rows for the current batch.
+     * @param array $headers The headers from the Google Sheet.
+     * @param array $mappings The column mappings.
+     * @param int $catalog_id The ID of the catalog.
+     * @param array $category_image_cache Cache for category image URLs to avoid re-downloading.
+     * @return array An array containing 'items_for_db', 'updated_image_cache', and 'errors_count'.
      */
-    public static function import_catalog_data($catalog_id, $sheet_url, $sheet_name, $mappings) {
-        set_time_limit(0); // Allow long execution for import and image processing
-        self::$processed_category_image_urls = []; // Reset for current import session
-
-        CatalogMaster_Logger::info('🔄 Starting catalog data import', array(
+    public static function process_data_chunk_for_import($rows_to_process_in_batch, $headers, $mappings, $catalog_id, $category_image_cache) {
+        CatalogMaster_Logger::info('🔄 Processing data chunk for import', array(
             'catalog_id' => $catalog_id,
-            'sheet_url' => $sheet_url,
-            'sheet_name' => $sheet_name,
-            'mappings_count' => count($mappings)
-        ));
-        
-        // Get data from Google Sheets
-        $import_result = self::import_from_url($sheet_url, $sheet_name);
-        
-        if (isset($import_result['error'])) {
-            CatalogMaster_Logger::error('❌ Failed to fetch data from Google Sheets', array(
-                'error' => $import_result['error']
-            ));
-            return $import_result;
-        }
-        
-        CatalogMaster_Logger::info('✅ Data fetched from Google Sheets', array(
-            'headers_count' => count($import_result['headers']),
-            'rows_count' => count($import_result['data']),
-            'headers' => $import_result['headers']
+            'rows_in_chunk' => count($rows_to_process_in_batch),
+            'mappings_count' => count($mappings),
+            'initial_image_cache_size' => count($category_image_cache)
         ));
         
         // Map data to catalog structure
-        $mapped_items = array();
-        $headers = $import_result['headers'];
+        $items_for_db = array();
         $skipped_rows = 0;
         $processed_rows = 0;
-        
-        foreach ($import_result['data'] as $row_index => $row) {
+        $errors_count = 0;
+        $updated_image_cache = $category_image_cache; // Work with a copy
+
+        foreach ($rows_to_process_in_batch as $row_index => $row) {
             $item = array();
             $row_errors = array();
             
             foreach ($mappings as $mapping) {
                 $google_column = $mapping->google_column;
                 $catalog_column = $mapping->catalog_column;
-                
-                // Find column index by header name
                 $column_index = array_search($google_column, $headers);
                 
                 if ($column_index !== false && isset($row[$column_index])) {
                     $original_value = $row[$column_index];
                     
-                    // Special handling for image URLs
                     if (strpos($catalog_column, 'image_url') !== false || strpos($catalog_column, 'image_') === 0) {
                         if (!empty($original_value)) {
                             $filename_base = '';
-                            $image_type = 'category'; // Default to category
+                            $image_type = 'category';
 
                             if ($catalog_column === 'product_image_url') {
                                 $image_type = 'product';
                                 $filename_base = isset($item['product_id']) && !empty($item['product_id']) ? $item['product_id'] : ('product_' . ($row_index + 1));
                             } else {
-                                // For category_image_1, category_image_2, category_image_3
-                                $level = substr($catalog_column, -1); // 1, 2, or 3
+                                $level = substr($catalog_column, -1);
                                 $category_id_key = 'category_id_' . $level;
                                 $filename_base = isset($item[$category_id_key]) && !empty($item[$category_id_key]) ? $item[$category_id_key] : ('category' . $level . '_' . ($row_index + 1));
                             }
 
                             if ($image_type === 'category') {
-                                if (isset(self::$processed_category_image_urls[$original_value])) {
-                                    $item[$catalog_column] = self::$processed_category_image_urls[$original_value];
+                                if (isset($updated_image_cache[$original_value])) {
+                                    $item[$catalog_column] = $updated_image_cache[$original_value];
                                 } else {
                                     $local_image_url = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
                                     if (!empty($local_image_url)) {
-                                        self::$processed_category_image_urls[$original_value] = $local_image_url;
+                                        $updated_image_cache[$original_value] = $local_image_url;
                                     }
-                                    $item[$catalog_column] = $local_image_url; // Store empty if failed, as per requirement
+                                    $item[$catalog_column] = $local_image_url;
                                 }
-                            } else { // Product image
+                            } else { 
                                 $item[$catalog_column] = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
                             }
                         } else {
-                            $item[$catalog_column] = ''; // Empty original URL
+                            $item[$catalog_column] = ''; 
                         }
-                    } else { // Not an image column
+                    } else { 
                         try {
                             $processed_value = self::process_column_value($original_value, $catalog_column);
                             $item[$catalog_column] = $processed_value;
                         } catch (Exception $e) {
                             $row_errors[] = "Column '{$google_column}' -> '{$catalog_column}': processing error - " . $e->getMessage();
                             $item[$catalog_column] = self::get_default_value($catalog_column);
+                            $errors_count++;
                         }
                     }
                 } else {
                     $item[$catalog_column] = self::get_default_value($catalog_column);
                 }
             }
-            
-            // Log row errors if any
+
             if (!empty($row_errors)) {
                 CatalogMaster_Logger::warning("⚠️ Row {$row_index} processing issues", $row_errors);
             }
             
-            // Validate that we have minimum required data
             if (!empty($item) && (!empty($item['product_name']) || !empty($item['product_id']))) {
-                $mapped_items[] = $item;
+                $items_for_db[] = $item;
                 $processed_rows++;
             } else {
                 $skipped_rows++;
                 CatalogMaster_Logger::debug("Skipped empty row {$row_index}", $row);
             }
         }
-        
-        CatalogMaster_Logger::info('📊 Data mapping completed', array(
+
+        CatalogMaster_Logger::info('📊 Data chunk processing completed', array(
             'processed_rows' => $processed_rows,
             'skipped_rows' => $skipped_rows,
-            'mapped_items' => count($mapped_items)
+            'items_for_db_count' => count($items_for_db),
+            'errors_in_chunk' => $errors_count,
+            'final_image_cache_size' => count($updated_image_cache)
         ));
-        
-        if (empty($mapped_items)) {
-            $error_msg = 'Не вдалося обробити жодного запису. Перевірте відповідність колонок та дані.';
-            CatalogMaster_Logger::error('❌ No items to import', array('error' => $error_msg));
-            return array('error' => $error_msg);
-        }
-        
-        // Clear existing items and insert new ones
-        try {
-            CatalogMaster_Logger::info('🗑️ Clearing existing catalog items');
-        CatalogMaster_Database::clear_catalog_items($catalog_id);
-            
-            CatalogMaster_Logger::info('💾 Inserting new catalog items');
-        CatalogMaster_Database::insert_catalog_items($catalog_id, $mapped_items);
-            
-            CatalogMaster_Logger::info('✅ Import completed successfully', array(
-                'imported_count' => count($mapped_items),
-                'skipped_count' => $skipped_rows
-            ));
-            
-            $success_message = 'Успішно імпортовано ' . count($mapped_items) . ' записів';
-            if ($skipped_rows > 0) {
-                $success_message .= ' (пропущено ' . $skipped_rows . ' порожніх рядків)';
-            }
-        
+
         return array(
-            'success' => true,
-            'imported_count' => count($mapped_items),
-                'skipped_count' => $skipped_rows,
-                'message' => $success_message
-            );
-            
-        } catch (Exception $e) {
-            $error_msg = 'Помилка збереження в базу даних: ' . $e->getMessage();
-            CatalogMaster_Logger::error('❌ Database save error', array(
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ));
-            return array('error' => $error_msg);
-        }
+            'items_for_db' => $items_for_db,
+            'updated_image_cache' => $updated_image_cache,
+            'errors_count' => $errors_count
+        );
     }
     
     /**
