@@ -75,7 +75,23 @@ class CatalogMaster_Exporter {
             wp_die('Catalog not found');
         }
         
+        // Get items count first for validation
+        $items_count = CatalogMaster_Database::get_catalog_items_count($catalog_id);
+        if ($items_count === 0) {
+            wp_die('No items found in catalog for export');
+        }
+        
+        // Check memory limit for large exports
+        if ($items_count > 10000) {
+            ini_set('memory_limit', '1024M');
+            ini_set('max_execution_time', 600);
+        }
+        
         $items = CatalogMaster_Database::get_catalog_items($catalog_id);
+        
+        if (empty($items)) {
+            wp_die('No items found in catalog');
+        }
         
         switch ($format) {
             case 'csv':
@@ -100,9 +116,16 @@ class CatalogMaster_Exporter {
         
         $items = CatalogMaster_Database::get_catalog_items($catalog_id);
         
-        // Set headers for feed
-        header('Cache-Control: no-cache, must-revalidate');
-        header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+        if (empty($items)) {
+            // Return empty but valid feed instead of error
+            $this->send_empty_feed($catalog, $format);
+            return;
+        }
+        
+        // Set modern cache headers for feeds
+        header('Cache-Control: public, max-age=3600'); // Cache for 1 hour
+        header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 3600) . ' GMT');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', strtotime($catalog->updated_at ?? 'now')) . ' GMT');
         
         switch ($format) {
             case 'csv':
@@ -120,22 +143,45 @@ class CatalogMaster_Exporter {
     }
     
     /**
-     * Export to CSV
+     * Send empty but valid feed
+     */
+    private function send_empty_feed($catalog, $format) {
+        switch ($format) {
+            case 'csv':
+                header('Content-Type: text/csv; charset=utf-8');
+                echo "ID,Product ID,Product Name,Price,Quantity,Image URL,Sort Order,Description,Category ID 1,Category ID 2,Category ID 3,Category Name 1,Category Name 2,Category Name 3,Category Image 1,Category Image 2,Category Image 3,Category Sort 1,Category Sort 2,Category Sort 3\n";
+                break;
+            case 'json':
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['catalog' => ['id' => $catalog->id, 'name' => $catalog->name], 'items' => []], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                break;
+            case 'xml':
+                header('Content-Type: text/xml; charset=utf-8');
+                echo '<?xml version="1.0" encoding="UTF-8"?><catalog><info><id>' . esc_html($catalog->id) . '</id><name><![CDATA[' . $catalog->name . ']]></name></info><items></items></catalog>';
+                break;
+        }
+        exit;
+    }
+    
+    /**
+     * Export to CSV (improved)
      */
     private function export_csv($catalog, $items, $download = false) {
         $filename = sanitize_file_name($catalog->name) . '_' . date('Y-m-d') . '.csv';
         
         if ($download) {
-            header('Content-Type: application/csv');
+            header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
         } else {
-            header('Content-Type: text/csv');
+            header('Content-Type: text/csv; charset=utf-8');
         }
         
         $output = fopen('php://output', 'w');
         
-        // Write BOM for UTF-8
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        // Write UTF-8 BOM only for download (Excel compatibility)
+        if ($download) {
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        }
         
         // Headers
         $headers = array(
@@ -148,32 +194,37 @@ class CatalogMaster_Exporter {
         
         fputcsv($output, $headers);
         
-        // Data
+        // Data with memory optimization
         foreach ($items as $item) {
             $row = array(
-                $item->id,
-                $item->product_id,
-                $item->product_name,
-                $item->product_price,
-                $item->product_qty,
-                $item->product_image_url,
-                $item->product_sort_order,
-                $item->product_description,
-                $item->category_id_1,
-                $item->category_id_2,
-                $item->category_id_3,
-                $item->category_name_1,
-                $item->category_name_2,
-                $item->category_name_3,
-                $item->category_image_1,
-                $item->category_image_2,
-                $item->category_image_3,
-                $item->category_sort_order_1,
-                $item->category_sort_order_2,
-                $item->category_sort_order_3
+                $item->id ?? '',
+                $item->product_id ?? '',
+                $item->product_name ?? '',
+                $item->product_price ?? '',
+                $item->product_qty ?? '',
+                $item->product_image_url ?? '',
+                $item->product_sort_order ?? '',
+                $item->product_description ?? '',
+                $item->category_id_1 ?? '',
+                $item->category_id_2 ?? '',
+                $item->category_id_3 ?? '',
+                $item->category_name_1 ?? '',
+                $item->category_name_2 ?? '',
+                $item->category_name_3 ?? '',
+                $item->category_image_1 ?? '',
+                $item->category_image_2 ?? '',
+                $item->category_image_3 ?? '',
+                $item->category_sort_order_1 ?? '',
+                $item->category_sort_order_2 ?? '',
+                $item->category_sort_order_3 ?? ''
             );
             
             fputcsv($output, $row);
+            
+            // Free memory periodically for large exports
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
         }
         
         fclose($output);
@@ -181,170 +232,277 @@ class CatalogMaster_Exporter {
     }
     
     /**
-     * Export to Excel (HTML table format)
+     * Export to Real Excel XLSX format
      */
     private function export_excel($catalog, $items, $download = false) {
-        $filename = sanitize_file_name($catalog->name) . '_' . date('Y-m-d') . '.xls';
+        $filename = sanitize_file_name($catalog->name) . '_' . date('Y-m-d') . '.xlsx';
         
         if ($download) {
-            header('Content-Type: application/vnd.ms-excel');
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
         } else {
-            header('Content-Type: application/vnd.ms-excel');
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         }
         
-        echo '<meta charset="UTF-8">';
-        echo '<table border="1">';
-        echo '<tr>';
-        echo '<th>ID</th>';
-        echo '<th>Product ID</th>';
-        echo '<th>Product Name</th>';
-        echo '<th>Price</th>';
-        echo '<th>Quantity</th>';
-        echo '<th>Image URL</th>';
-        echo '<th>Sort Order</th>';
-        echo '<th>Description</th>';
-        echo '<th>Category ID 1</th>';
-        echo '<th>Category ID 2</th>';
-        echo '<th>Category ID 3</th>';
-        echo '<th>Category Name 1</th>';
-        echo '<th>Category Name 2</th>';
-        echo '<th>Category Name 3</th>';
-        echo '<th>Category Image 1</th>';
-        echo '<th>Category Image 2</th>';
-        echo '<th>Category Image 3</th>';
-        echo '<th>Category Sort 1</th>';
-        echo '<th>Category Sort 2</th>';
-        echo '<th>Category Sort 3</th>';
-        echo '</tr>';
-        
-        foreach ($items as $item) {
-            echo '<tr>';
-            echo '<td>' . esc_html($item->id) . '</td>';
-            echo '<td>' . esc_html($item->product_id) . '</td>';
-            echo '<td>' . esc_html($item->product_name) . '</td>';
-            echo '<td>' . esc_html($item->product_price) . '</td>';
-            echo '<td>' . esc_html($item->product_qty) . '</td>';
-            echo '<td>' . esc_html($item->product_image_url) . '</td>';
-            echo '<td>' . esc_html($item->product_sort_order) . '</td>';
-            echo '<td>' . esc_html($item->product_description) . '</td>';
-            echo '<td>' . esc_html($item->category_id_1) . '</td>';
-            echo '<td>' . esc_html($item->category_id_2) . '</td>';
-            echo '<td>' . esc_html($item->category_id_3) . '</td>';
-            echo '<td>' . esc_html($item->category_name_1) . '</td>';
-            echo '<td>' . esc_html($item->category_name_2) . '</td>';
-            echo '<td>' . esc_html($item->category_name_3) . '</td>';
-            echo '<td>' . esc_html($item->category_image_1) . '</td>';
-            echo '<td>' . esc_html($item->category_image_2) . '</td>';
-            echo '<td>' . esc_html($item->category_image_3) . '</td>';
-            echo '<td>' . esc_html($item->category_sort_order_1) . '</td>';
-            echo '<td>' . esc_html($item->category_sort_order_2) . '</td>';
-            echo '<td>' . esc_html($item->category_sort_order_3) . '</td>';
-            echo '</tr>';
-        }
-        
-        echo '</table>';
+        // Create minimal XLSX file
+        $this->create_xlsx_file($catalog, $items);
         exit;
     }
     
     /**
-     * Export to JSON
+     * Create real XLSX file (minimal implementation)
+     */
+    private function create_xlsx_file($catalog, $items) {
+        // Create temporary directory
+        $temp_dir = sys_get_temp_dir() . '/catalog_master_' . uniqid();
+        mkdir($temp_dir);
+        mkdir($temp_dir . '/_rels');
+        mkdir($temp_dir . '/xl');
+        mkdir($temp_dir . '/xl/_rels');
+        mkdir($temp_dir . '/xl/worksheets');
+        
+        // Create [Content_Types].xml
+        $content_types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+    <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>';
+        file_put_contents($temp_dir . '/[Content_Types].xml', $content_types);
+        
+        // Create _rels/.rels
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>';
+        file_put_contents($temp_dir . '/_rels/.rels', $rels);
+        
+        // Create xl/workbook.xml
+        $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <sheets>
+        <sheet name="' . esc_attr($catalog->name) . '" sheetId="1" r:id="rId1"/>
+    </sheets>
+</workbook>';
+        file_put_contents($temp_dir . '/xl/workbook.xml', $workbook);
+        
+        // Create xl/_rels/workbook.xml.rels
+        $workbook_rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>';
+        file_put_contents($temp_dir . '/xl/_rels/workbook.xml.rels', $workbook_rels);
+        
+        // Create worksheet with data
+        $worksheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+    <sheetData>';
+        
+        // Headers row
+        $worksheet .= '<row r="1">';
+        $headers = ['ID', 'Product ID', 'Product Name', 'Price', 'Quantity', 'Image URL', 'Sort Order', 'Description', 
+                   'Category ID 1', 'Category ID 2', 'Category ID 3', 'Category Name 1', 'Category Name 2', 'Category Name 3',
+                   'Category Image 1', 'Category Image 2', 'Category Image 3', 'Category Sort 1', 'Category Sort 2', 'Category Sort 3'];
+        
+        for ($i = 0; $i < count($headers); $i++) {
+            $col = chr(65 + ($i % 26));
+            if ($i >= 26) $col = chr(64 + intval($i / 26)) . $col;
+            $worksheet .= '<c r="' . $col . '1" t="inlineStr"><is><t>' . htmlspecialchars($headers[$i]) . '</t></is></c>';
+        }
+        $worksheet .= '</row>';
+        
+        // Data rows
+        $row_num = 2;
+        foreach ($items as $item) {
+            $worksheet .= '<row r="' . $row_num . '">';
+            
+            $data = [
+                $item->id ?? '', $item->product_id ?? '', $item->product_name ?? '', $item->product_price ?? '',
+                $item->product_qty ?? '', $item->product_image_url ?? '', $item->product_sort_order ?? '',
+                $item->product_description ?? '', $item->category_id_1 ?? '', $item->category_id_2 ?? '',
+                $item->category_id_3 ?? '', $item->category_name_1 ?? '', $item->category_name_2 ?? '',
+                $item->category_name_3 ?? '', $item->category_image_1 ?? '', $item->category_image_2 ?? '',
+                $item->category_image_3 ?? '', $item->category_sort_order_1 ?? '', $item->category_sort_order_2 ?? '',
+                $item->category_sort_order_3 ?? ''
+            ];
+            
+            for ($i = 0; $i < count($data); $i++) {
+                $col = chr(65 + ($i % 26));
+                if ($i >= 26) $col = chr(64 + intval($i / 26)) . $col;
+                
+                $value = htmlspecialchars($data[$i]);
+                if (is_numeric($data[$i]) && $i < 4) { // ID, price, qty as numbers
+                    $worksheet .= '<c r="' . $col . $row_num . '"><v>' . $value . '</v></c>';
+                } else {
+                    $worksheet .= '<c r="' . $col . $row_num . '" t="inlineStr"><is><t>' . $value . '</t></is></c>';
+                }
+            }
+            
+            $worksheet .= '</row>';
+            $row_num++;
+        }
+        
+        $worksheet .= '</sheetData></worksheet>';
+        file_put_contents($temp_dir . '/xl/worksheets/sheet1.xml', $worksheet);
+        
+        // Create ZIP archive
+        $zip = new ZipArchive();
+        $zip_file = tempnam(sys_get_temp_dir(), 'catalog_master_xlsx');
+        
+        if ($zip->open($zip_file, ZipArchive::CREATE) === TRUE) {
+            $this->add_directory_to_zip($zip, $temp_dir, strlen($temp_dir) + 1);
+            $zip->close();
+            
+            // Output file
+            readfile($zip_file);
+            
+            // Cleanup
+            unlink($zip_file);
+            $this->remove_directory($temp_dir);
+        } else {
+            // Fallback to CSV if ZIP creation fails
+            $this->remove_directory($temp_dir);
+            $csv_filename = sanitize_file_name($catalog->name) . '_' . date('Y-m-d') . '.csv';
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $csv_filename . '"');
+            $this->export_csv($catalog, $items, true);
+        }
+    }
+    
+    /**
+     * Add directory to ZIP recursively
+     */
+    private function add_directory_to_zip($zip, $dir, $base_len) {
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+        
+        foreach ($files as $file) {
+            if (!$file->isDir()) {
+                $file_path = $file->getRealPath();
+                $relative_path = substr($file_path, $base_len);
+                $zip->addFile($file_path, $relative_path);
+            }
+        }
+    }
+    
+    /**
+     * Remove directory recursively
+     */
+    private function remove_directory($dir) {
+        if (is_dir($dir)) {
+            $files = array_diff(scandir($dir), array('.', '..'));
+            foreach ($files as $file) {
+                (is_dir("$dir/$file")) ? $this->remove_directory("$dir/$file") : unlink("$dir/$file");
+            }
+            rmdir($dir);
+        }
+    }
+    
+    /**
+     * Export to JSON (improved)
      */
     private function export_json($catalog, $items) {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         
         $data = array(
             'catalog' => array(
-                'id' => $catalog->id,
+                'id' => intval($catalog->id),
                 'name' => $catalog->name,
                 'description' => $catalog->description,
-                'exported_at' => current_time('c')
+                'exported_at' => current_time('c'),
+                'items_count' => count($items)
             ),
             'items' => array()
         );
         
         foreach ($items as $item) {
+            $categories = [];
+            
+            // Only add non-empty categories
+            for ($i = 1; $i <= 3; $i++) {
+                $cat_id = $item->{"category_id_$i"} ?? '';
+                $cat_name = $item->{"category_name_$i"} ?? '';
+                $cat_image = $item->{"category_image_$i"} ?? '';
+                $cat_sort = $item->{"category_sort_order_$i"} ?? 0;
+                
+                if (!empty($cat_id) || !empty($cat_name)) {
+                    $categories[] = array(
+                        'level' => $i,
+                        'id' => $cat_id,
+                        'name' => $cat_name,
+                        'image' => $cat_image,
+                        'sort_order' => intval($cat_sort)
+                    );
+                }
+            }
+            
             $data['items'][] = array(
-                'id' => intval($item->id),
-                'product_id' => $item->product_id,
-                'product_name' => $item->product_name,
-                'product_price' => floatval($item->product_price),
-                'product_qty' => intval($item->product_qty),
-                'product_image_url' => $item->product_image_url,
-                'product_sort_order' => intval($item->product_sort_order),
-                'product_description' => $item->product_description,
-                'categories' => array(
-                    array(
-                        'id' => $item->category_id_1,
-                        'name' => $item->category_name_1,
-                        'image' => $item->category_image_1,
-                        'sort_order' => intval($item->category_sort_order_1)
-                    ),
-                    array(
-                        'id' => $item->category_id_2,
-                        'name' => $item->category_name_2,
-                        'image' => $item->category_image_2,
-                        'sort_order' => intval($item->category_sort_order_2)
-                    ),
-                    array(
-                        'id' => $item->category_id_3,
-                        'name' => $item->category_name_3,
-                        'image' => $item->category_image_3,
-                        'sort_order' => intval($item->category_sort_order_3)
-                    )
-                )
+                'id' => intval($item->id ?? 0),
+                'product_id' => $item->product_id ?? '',
+                'product_name' => $item->product_name ?? '',
+                'product_price' => floatval($item->product_price ?? 0),
+                'product_qty' => intval($item->product_qty ?? 0),
+                'product_image_url' => $item->product_image_url ?? '',
+                'product_sort_order' => intval($item->product_sort_order ?? 0),
+                'product_description' => $item->product_description ?? '',
+                'categories' => $categories
             );
         }
         
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
     
     /**
-     * Export to XML
+     * Export to XML (improved)
      */
     private function export_xml($catalog, $items) {
-        header('Content-Type: text/xml');
+        header('Content-Type: text/xml; charset=utf-8');
         
         echo '<?xml version="1.0" encoding="UTF-8"?>';
         echo '<catalog>';
         echo '<info>';
-        echo '<id>' . esc_html($catalog->id) . '</id>';
-        echo '<name><![CDATA[' . $catalog->name . ']]></name>';
-        echo '<description><![CDATA[' . $catalog->description . ']]></description>';
+        echo '<id>' . intval($catalog->id) . '</id>';
+        echo '<name><![CDATA[' . ($catalog->name ?? '') . ']]></name>';
+        echo '<description><![CDATA[' . ($catalog->description ?? '') . ']]></description>';
         echo '<exported_at>' . current_time('c') . '</exported_at>';
+        echo '<items_count>' . count($items) . '</items_count>';
         echo '</info>';
         echo '<items>';
         
         foreach ($items as $item) {
             echo '<item>';
-            echo '<id>' . esc_html($item->id) . '</id>';
-            echo '<product_id><![CDATA[' . $item->product_id . ']]></product_id>';
-            echo '<product_name><![CDATA[' . $item->product_name . ']]></product_name>';
-            echo '<product_price>' . esc_html($item->product_price) . '</product_price>';
-            echo '<product_qty>' . esc_html($item->product_qty) . '</product_qty>';
-            echo '<product_image_url><![CDATA[' . $item->product_image_url . ']]></product_image_url>';
-            echo '<product_sort_order>' . esc_html($item->product_sort_order) . '</product_sort_order>';
-            echo '<product_description><![CDATA[' . $item->product_description . ']]></product_description>';
+            echo '<id>' . intval($item->id ?? 0) . '</id>';
+            echo '<product_id><![CDATA[' . ($item->product_id ?? '') . ']]></product_id>';
+            echo '<product_name><![CDATA[' . ($item->product_name ?? '') . ']]></product_name>';
+            echo '<product_price>' . floatval($item->product_price ?? 0) . '</product_price>';
+            echo '<product_qty>' . intval($item->product_qty ?? 0) . '</product_qty>';
+            echo '<product_image_url><![CDATA[' . ($item->product_image_url ?? '') . ']]></product_image_url>';
+            echo '<product_sort_order>' . intval($item->product_sort_order ?? 0) . '</product_sort_order>';
+            echo '<product_description><![CDATA[' . ($item->product_description ?? '') . ']]></product_description>';
             echo '<categories>';
-            echo '<category>';
-            echo '<id><![CDATA[' . $item->category_id_1 . ']]></id>';
-            echo '<name><![CDATA[' . $item->category_name_1 . ']]></name>';
-            echo '<image><![CDATA[' . $item->category_image_1 . ']]></image>';
-            echo '<sort_order>' . esc_html($item->category_sort_order_1) . '</sort_order>';
-            echo '</category>';
-            echo '<category>';
-            echo '<id><![CDATA[' . $item->category_id_2 . ']]></id>';
-            echo '<name><![CDATA[' . $item->category_name_2 . ']]></name>';
-            echo '<image><![CDATA[' . $item->category_image_2 . ']]></image>';
-            echo '<sort_order>' . esc_html($item->category_sort_order_2) . '</sort_order>';
-            echo '</category>';
-            echo '<category>';
-            echo '<id><![CDATA[' . $item->category_id_3 . ']]></id>';
-            echo '<name><![CDATA[' . $item->category_name_3 . ']]></name>';
-            echo '<image><![CDATA[' . $item->category_image_3 . ']]></image>';
-            echo '<sort_order>' . esc_html($item->category_sort_order_3) . '</sort_order>';
-            echo '</category>';
+            
+            for ($i = 1; $i <= 3; $i++) {
+                $cat_id = $item->{"category_id_$i"} ?? '';
+                $cat_name = $item->{"category_name_$i"} ?? '';
+                $cat_image = $item->{"category_image_$i"} ?? '';
+                $cat_sort = $item->{"category_sort_order_$i"} ?? 0;
+                
+                // Only output non-empty categories
+                if (!empty($cat_id) || !empty($cat_name)) {
+                    echo '<category level="' . $i . '">';
+                    echo '<id><![CDATA[' . $cat_id . ']]></id>';
+                    echo '<name><![CDATA[' . $cat_name . ']]></name>';
+                    echo '<image><![CDATA[' . $cat_image . ']]></image>';
+                    echo '<sort_order>' . intval($cat_sort) . '</sort_order>';
+                    echo '</category>';
+                }
+            }
+            
             echo '</categories>';
             echo '</item>';
         }
