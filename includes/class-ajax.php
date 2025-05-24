@@ -164,21 +164,44 @@ class CatalogMaster_Ajax {
         $items = CatalogMaster_Database::get_catalog_items($catalog_id, $length, $start);
         $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id);
         
-        // Format data for DataTable
+        // Format data for DataTable - all fields
         $data = array();
         foreach ($items as $item) {
             $row = array();
-            $row[] = $item->id;
-            $row[] = esc_html($item->product_id);
-            $row[] = esc_html($item->product_name);
-            $row[] = number_format($item->product_price, 2);
-            $row[] = intval($item->product_qty);
-            $row[] = $item->product_image_url ? '<img src="' . esc_url($item->product_image_url) . '" style="max-width:50px;max-height:50px;">' : '';
-            $row[] = intval($item->product_sort_order);
-            $row[] = esc_html(wp_trim_words($item->product_description, 10));
-            $row[] = esc_html($item->category_id_1);
-            $row[] = esc_html($item->category_name_1);
-            $row[] = '<button class="button button-small edit-item" data-id="' . $item->id . '">Редагувати</button> <button class="button button-small button-link-delete delete-item" data-id="' . $item->id . '">Видалити</button>';
+            
+            // Basic product fields
+            $row[] = $item->id ?? '';
+            $row[] = esc_html($item->product_id ?? '');
+            $row[] = esc_html($item->product_name ?? '');
+            $row[] = $item->product_price ? number_format($item->product_price, 2) : '';
+            $row[] = intval($item->product_qty ?? 0);
+            $row[] = $item->product_image_url ? '<img src="' . esc_url($item->product_image_url) . '" style="max-width:50px;max-height:50px;" loading="lazy">' : '';
+            $row[] = intval($item->product_sort_order ?? 0);
+            $row[] = esc_html(wp_trim_words($item->product_description ?? '', 8));
+            
+            // Category 1
+            $row[] = esc_html($item->category_id_1 ?? '');
+            $row[] = esc_html($item->category_name_1 ?? '');
+            $row[] = $item->category_image_1 ? '<img src="' . esc_url($item->category_image_1) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+            $row[] = intval($item->category_sort_order_1 ?? 0);
+            
+            // Category 2
+            $row[] = esc_html($item->category_id_2 ?? '');
+            $row[] = esc_html($item->category_name_2 ?? '');
+            $row[] = $item->category_image_2 ? '<img src="' . esc_url($item->category_image_2) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+            $row[] = intval($item->category_sort_order_2 ?? 0);
+            
+            // Category 3
+            $row[] = esc_html($item->category_id_3 ?? '');
+            $row[] = esc_html($item->category_name_3 ?? '');
+            $row[] = $item->category_image_3 ? '<img src="' . esc_url($item->category_image_3) . '" style="max-width:40px;max-height:40px;" loading="lazy">' : '';
+            $row[] = intval($item->category_sort_order_3 ?? 0);
+            
+            // Actions
+            $row[] = '<div class="actions-column">' .
+                     '<button class="button button-small edit-item" data-id="' . $item->id . '" title="Редагувати">✏️</button> ' .
+                     '<button class="button button-small button-link-delete delete-item" data-id="' . $item->id . '" title="Видалити">🗑️</button>' .
+                     '</div>';
             
             $data[] = $row;
         }

@@ -673,4 +673,277 @@ table.dataTable tbody td {
         flex-direction: column;
         gap: 8px;
     }
+}
+
+/* Enhanced DataTable Styles */
+.catalog-items-enhanced {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.catalog-items-enhanced th {
+    background: #f8f9fa !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 10px 6px !important;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.catalog-items-enhanced td {
+    padding: 8px 6px !important;
+    border-bottom: 1px solid #f0f0f1;
+    vertical-align: middle;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalog-items-enhanced .text-center {
+    text-align: center;
+}
+
+.catalog-items-enhanced .text-right {
+    text-align: right;
+}
+
+.catalog-items-enhanced .no-wrap {
+    white-space: nowrap;
+}
+
+/* Image styling in tables */
+.catalog-items-enhanced img {
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    display: block;
+    margin: 0 auto;
+    object-fit: cover;
+}
+
+/* Actions column styling */
+.actions-column {
+    white-space: nowrap;
+}
+
+.actions-column .button {
+    margin: 0 2px;
+    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 28px;
+}
+
+/* DataTable custom DOM styling */
+.datatable-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.datatable-info {
+    font-size: 13px;
+    color: #646970;
+}
+
+.datatable-length select {
+    padding: 4px 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 3px;
+    margin: 0 5px;
+}
+
+.datatable-search input {
+    padding: 6px 10px;
+    border: 1px solid #8c8f94;
+    border-radius: 3px;
+    min-width: 250px;
+}
+
+.datatable-bottom {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+/* Responsive DataTable improvements */
+.catalog-items-enhanced.table-responsive {
+    min-height: 400px;
+}
+
+.catalog-items-enhanced_wrapper .row {
+    margin: 0;
+}
+
+/* Enhanced scrolling */
+.dataTables_scrollHead {
+    background: #f8f9fa;
+}
+
+.dataTables_scrollBody {
+    border-top: 1px solid #dee2e6;
+}
+
+/* Category columns styling */
+.catalog-items-enhanced td[data-category] {
+    background-color: #f8f9fa;
+}
+
+/* Improved hover effects */
+.catalog-items-enhanced tbody tr:hover {
+    background-color: #f1f3f4 !important;
+    cursor: pointer;
+}
+
+.catalog-items-enhanced tbody tr:hover td {
+    background-color: transparent;
+}
+
+/* Column specific styling */
+.catalog-items-enhanced td:nth-child(1) { /* ID */
+    font-weight: 600;
+    color: #0073aa;
+}
+
+.catalog-items-enhanced td:nth-child(3) { /* Product Name */
+    font-weight: 500;
+    max-width: 250px;
+}
+
+.catalog-items-enhanced td:nth-child(4) { /* Price */
+    font-weight: 600;
+    color: #00a32a;
+}
+
+.catalog-items-enhanced td:nth-child(8) { /* Description */
+    max-width: 300px;
+    font-size: 12px;
+    color: #646970;
+}
+
+/* Category group styling */
+.catalog-items-enhanced th:nth-child(9),
+.catalog-items-enhanced th:nth-child(10),
+.catalog-items-enhanced th:nth-child(11),
+.catalog-items-enhanced th:nth-child(12) {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3;
+}
+
+.catalog-items-enhanced th:nth-child(13),
+.catalog-items-enhanced th:nth-child(14),
+.catalog-items-enhanced th:nth-child(15),
+.catalog-items-enhanced th:nth-child(16) {
+    background-color: #f3e5f5 !important;
+    border-left: 3px solid #9c27b0;
+}
+
+.catalog-items-enhanced th:nth-child(17),
+.catalog-items-enhanced th:nth-child(18),
+.catalog-items-enhanced th:nth-child(19),
+.catalog-items-enhanced th:nth-child(20) {
+    background-color: #e8f5e8 !important;
+    border-left: 3px solid #4caf50;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .datatable-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .datatable-search input {
+        min-width: 100%;
+        margin-top: 10px;
+    }
+    
+    .catalog-items-enhanced {
+        font-size: 12px;
+    }
+    
+    .catalog-items-enhanced th,
+    .catalog-items-enhanced td {
+        padding: 6px 4px !important;
+    }
+    
+    .actions-column .button {
+        padding: 2px 4px;
+        font-size: 11px;
+    }
+}
+
+/* Loading and empty states */
+.dataTables_processing {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #0073aa !important;
+    font-weight: 600;
+    border: 1px solid #0073aa;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.dataTables_empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #646970;
+    font-style: italic;
+}
+
+/* Pagination styling */
+.dataTables_paginate {
+    margin-top: 10px;
+}
+
+.dataTables_paginate .paginate_button {
+    padding: 6px 12px;
+    margin: 0 2px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #fff;
+    color: #0073aa;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.dataTables_paginate .paginate_button:hover {
+    background: #0073aa;
+    color: #fff;
+    border-color: #0073aa;
+}
+
+.dataTables_paginate .paginate_button.current {
+    background: #0073aa;
+    color: #fff;
+    border-color: #0073aa;
+}
+
+.dataTables_paginate .paginate_button.disabled {
+    color: #ccc;
+    background: #f9f9f9;
+    border-color: #ddd;
+    cursor: not-allowed;
+}
+
+/* Utility classes for table */
+.catalog-items-enhanced .highlight {
+    background-color: #fff3cd !important;
+}
+
+.catalog-items-enhanced .text-muted {
+    color: #6c757d !important;
+}
+
+.catalog-items-enhanced .text-success {
+    color: #00a32a !important;
+}
+
+.catalog-items-enhanced .text-danger {
+    color: #d63638 !important;
 } 

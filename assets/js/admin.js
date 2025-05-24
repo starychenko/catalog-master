@@ -106,6 +106,8 @@ jQuery(document).ready(function($) {
                 catalogMaster.dataTable = $('#catalog-items-table').DataTable({
                     processing: true,
                     serverSide: true,
+                    responsive: true,
+                    scrollX: true,
                     ajax: {
                         url: catalog_master_ajax.ajax_url,
                         type: 'POST',
@@ -116,20 +118,122 @@ jQuery(document).ready(function($) {
                         }
                     },
                     columns: [
-                        { title: 'ID', width: '50px' },
-                        { title: 'Product ID' },
-                        { title: 'Name' },
-                        { title: 'Price' },
-                        { title: 'Qty' },
-                        { title: 'Image', orderable: false },
-                        { title: 'Sort' },
-                        { title: 'Description' },
-                        { title: 'Category ID' },
-                        { title: 'Category Name' },
-                        { title: 'Actions', orderable: false, width: '120px' }
+                        { 
+                            title: 'ID', 
+                            width: '50px',
+                            className: 'text-center',
+                            responsivePriority: 1
+                        },
+                        { 
+                            title: 'Product ID',
+                            responsivePriority: 2
+                        },
+                        { 
+                            title: 'Product Name',
+                            responsivePriority: 1
+                        },
+                        { 
+                            title: 'Price',
+                            className: 'text-right',
+                            responsivePriority: 3
+                        },
+                        { 
+                            title: 'Qty',
+                            className: 'text-center',
+                            width: '60px'
+                        },
+                        { 
+                            title: 'Product Image', 
+                            orderable: false,
+                            className: 'text-center',
+                            width: '80px'
+                        },
+                        { 
+                            title: 'Sort',
+                            className: 'text-center',
+                            width: '60px'
+                        },
+                        { 
+                            title: 'Description',
+                            responsivePriority: 4
+                        },
+                        { 
+                            title: 'Cat1 ID',
+                            responsivePriority: 5
+                        },
+                        { 
+                            title: 'Cat1 Name',
+                            responsivePriority: 5
+                        },
+                        { 
+                            title: 'Cat1 Image', 
+                            orderable: false,
+                            className: 'text-center',
+                            width: '70px'
+                        },
+                        { 
+                            title: 'Cat1 Sort',
+                            className: 'text-center',
+                            width: '60px'
+                        },
+                        { 
+                            title: 'Cat2 ID',
+                            responsivePriority: 6
+                        },
+                        { 
+                            title: 'Cat2 Name',
+                            responsivePriority: 6
+                        },
+                        { 
+                            title: 'Cat2 Image', 
+                            orderable: false,
+                            className: 'text-center',
+                            width: '70px'
+                        },
+                        { 
+                            title: 'Cat2 Sort',
+                            className: 'text-center',
+                            width: '60px'
+                        },
+                        { 
+                            title: 'Cat3 ID',
+                            responsivePriority: 7
+                        },
+                        { 
+                            title: 'Cat3 Name',
+                            responsivePriority: 7
+                        },
+                        { 
+                            title: 'Cat3 Image', 
+                            orderable: false,
+                            className: 'text-center',
+                            width: '70px'
+                        },
+                        { 
+                            title: 'Cat3 Sort',
+                            className: 'text-center',
+                            width: '60px'
+                        },
+                        { 
+                            title: 'Actions', 
+                            orderable: false, 
+                            width: '100px',
+                            className: 'text-center',
+                            responsivePriority: 1
+                        }
                     ],
                     pageLength: 25,
-                    order: [[6, 'asc']], // Sort by sort order
+                    order: [[6, 'asc']], // Sort by product sort order
+                    columnDefs: [
+                        {
+                            targets: [5, 10, 14, 18], // Image columns
+                            className: 'no-wrap'
+                        },
+                        {
+                            targets: [20], // Actions column
+                            className: 'no-wrap'
+                        }
+                    ],
                     language: {
                         processing: 'Завантаження...',
                         search: 'Пошук:',
@@ -144,6 +248,11 @@ jQuery(document).ready(function($) {
                             previous: 'Попередня'
                         },
                         emptyTable: 'Немає даних для відображення'
+                    },
+                    dom: '<"datatable-top"<"datatable-info"i><"datatable-length"l><"datatable-search"f>>rt<"datatable-bottom"<"datatable-pagination"p>>',
+                    initComplete: function() {
+                        // Add custom styling after table initialization
+                        $('#catalog-items-table').addClass('catalog-items-enhanced');
                     }
                 });
             }
