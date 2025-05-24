@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
 
 class CatalogMaster_GoogleSheets {
     
+    private static $processed_category_image_urls = [];
+    
     /**
      * Get data from Google Sheets XLSX export (improved method)
      */
@@ -459,61 +461,6 @@ class CatalogMaster_GoogleSheets {
     }
     
     /**
-     * Download and save image locally
-     */
-    public static function download_image($image_url, $catalog_id, $product_id) {
-        if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
-            return '';
-        }
-        
-        // Get upload directory
-        $upload_dir = wp_upload_dir();
-        $catalog_images_dir = $upload_dir['basedir'] . '/catalog-master-images';
-        
-        // Create catalog-specific directory
-        $catalog_dir = $catalog_images_dir . '/catalog-' . $catalog_id;
-        if (!file_exists($catalog_dir)) {
-            wp_mkdir_p($catalog_dir);
-        }
-        
-        // Get image extension
-        $image_info = pathinfo(parse_url($image_url, PHP_URL_PATH));
-        $extension = isset($image_info['extension']) ? $image_info['extension'] : 'jpg';
-        
-        // Generate filename
-        $filename = 'product-' . sanitize_file_name($product_id) . '-' . time() . '.' . $extension;
-        $file_path = $catalog_dir . '/' . $filename;
-        
-        // Download image
-        $response = wp_remote_get($image_url, array(
-            'timeout' => 30,
-            'headers' => array(
-                'User-Agent' => 'WordPress/' . get_bloginfo('version') . '; ' . home_url()
-            )
-        ));
-        
-        if (is_wp_error($response)) {
-            return '';
-        }
-        
-        $image_data = wp_remote_retrieve_body($response);
-        $response_code = wp_remote_retrieve_response_code($response);
-        
-        if ($response_code !== 200 || empty($image_data)) {
-            return '';
-        }
-        
-        // Save image
-        if (file_put_contents($file_path, $image_data)) {
-            // Return relative URL
-            $upload_url = $upload_dir['baseurl'];
-            return $upload_url . '/catalog-master-images/catalog-' . $catalog_id . '/' . $filename;
-        }
-        
-        return '';
-    }
-    
-    /**
      * Get available sheets from Google Sheets (simplified)
      */
     public static function get_available_sheets($sheet_url) {
@@ -526,6 +473,9 @@ class CatalogMaster_GoogleSheets {
      * Import data with image downloading and enhanced error handling
      */
     public static function import_catalog_data($catalog_id, $sheet_url, $sheet_name, $mappings) {
+        set_time_limit(0); // Allow long execution for import and image processing
+        self::$processed_category_image_urls = []; // Reset for current import session
+
         CatalogMaster_Logger::info('🔄 Starting catalog data import', array(
             'catalog_id' => $catalog_id,
             'sheet_url' => $sheet_url,
@@ -569,27 +519,46 @@ class CatalogMaster_GoogleSheets {
                 if ($column_index !== false && isset($row[$column_index])) {
                     $original_value = $row[$column_index];
                     
-                    try {
-                    // Special handling for images
-                    if (($catalog_column === 'product_image_url' || 
-                         $catalog_column === 'category_image_1' ||
-                         $catalog_column === 'category_image_2' ||
-                             $catalog_column === 'category_image_3') && !empty($original_value)) {
-                        $product_id = isset($item['product_id']) ? $item['product_id'] : 'product-' . uniqid();
-                            $local_image_url = self::download_image($original_value, $catalog_id, $product_id);
-                            $item[$catalog_column] = $local_image_url ?: $original_value;
-                    } else {
+                    // Special handling for image URLs
+                    if (strpos($catalog_column, 'image_url') !== false || strpos($catalog_column, 'image_') === 0) {
+                        if (!empty($original_value)) {
+                            $filename_base = '';
+                            $image_type = 'category'; // Default to category
+
+                            if ($catalog_column === 'product_image_url') {
+                                $image_type = 'product';
+                                $filename_base = isset($item['product_id']) && !empty($item['product_id']) ? $item['product_id'] : ('product_' . ($row_index + 1));
+                            } else {
+                                // For category_image_1, category_image_2, category_image_3
+                                $level = substr($catalog_column, -1); // 1, 2, or 3
+                                $category_id_key = 'category_id_' . $level;
+                                $filename_base = isset($item[$category_id_key]) && !empty($item[$category_id_key]) ? $item[$category_id_key] : ('category' . $level . '_' . ($row_index + 1));
+                            }
+
+                            if ($image_type === 'category') {
+                                if (isset(self::$processed_category_image_urls[$original_value])) {
+                                    $item[$catalog_column] = self::$processed_category_image_urls[$original_value];
+                                } else {
+                                    $local_image_url = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
+                                    if (!empty($local_image_url)) {
+                                        self::$processed_category_image_urls[$original_value] = $local_image_url;
+                                    }
+                                    $item[$catalog_column] = $local_image_url; // Store empty if failed, as per requirement
+                                }
+                            } else { // Product image
+                                $item[$catalog_column] = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
+                            }
+                        } else {
+                            $item[$catalog_column] = ''; // Empty original URL
+                        }
+                    } else { // Not an image column
+                        try {
                             $processed_value = self::process_column_value($original_value, $catalog_column);
                             $item[$catalog_column] = $processed_value;
-                            
-                            // Log potential data issues
-                            if (!empty($original_value) && empty($processed_value) && $catalog_column !== 'product_price') {
-                                $row_errors[] = "Column '{$google_column}' -> '{$catalog_column}': value was cleaned from '{$original_value}' to empty";
-                            }
+                        } catch (Exception $e) {
+                            $row_errors[] = "Column '{$google_column}' -> '{$catalog_column}': processing error - " . $e->getMessage();
+                            $item[$catalog_column] = self::get_default_value($catalog_column);
                         }
-                    } catch (Exception $e) {
-                        $row_errors[] = "Column '{$google_column}' -> '{$catalog_column}': processing error - " . $e->getMessage();
-                        $item[$catalog_column] = self::get_default_value($catalog_column);
                     }
                 } else {
                     $item[$catalog_column] = self::get_default_value($catalog_column);
@@ -876,5 +845,70 @@ class CatalogMaster_GoogleSheets {
         // If this is actually XLSX data, try to get CSV version
         // This is a fallback, should rarely be used
         return self::parse_csv($data);
+    }
+
+    /**
+     * Download, process (resize, convert to JPG), and save image locally.
+     * Names product images as product_id.jpg and category images as category_id_X.jpg.
+     */
+    private static function download_and_process_image($image_url, $catalog_id, $filename_base, $type = 'product', $target_width = 1000, $target_height = 1000) {
+        if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
+            CatalogMaster_Logger::warning("Invalid image URL for {$type} '{$filename_base}': {$image_url}");
+            return '';
+        }
+
+        // Get upload directory
+        $upload_dir = wp_upload_dir();
+        $base_images_dir = $upload_dir['basedir'] . '/catalog-master-images/catalog-' . $catalog_id . '/';
+        $sub_dir = ($type === 'product') ? 'products/' : 'categories/';
+        $full_target_dir = $base_images_dir . $sub_dir;
+
+        if (!file_exists($full_target_dir)) {
+            if (!wp_mkdir_p($full_target_dir)) {
+                CatalogMaster_Logger::error("Failed to create directory: {$full_target_dir}");
+                return '';
+            }
+        }
+
+        $final_filename = sanitize_file_name($filename_base) . '.jpg';
+        $final_file_path = $full_target_dir . $final_filename;
+
+        // Download image to a temporary file
+        $temp_file_path = download_url($image_url, 300); // 300 seconds timeout
+
+        if (is_wp_error($temp_file_path)) {
+            CatalogMaster_Logger::error("Failed to download image from {$image_url} for {$type} '{$filename_base}'. Error: " . $temp_file_path->get_error_message());
+            return '';
+        }
+
+        $image_editor = wp_get_image_editor($temp_file_path);
+
+        if (!is_wp_error($image_editor)) {
+            $image_editor->set_quality(90); // Standard quality for JPG
+            $resized = $image_editor->resize($target_width, $target_height, true); // true for crop
+
+            if (is_wp_error($resized)) {
+                CatalogMaster_Logger::error("Failed to resize image {$image_url}. Error: " . $resized->get_error_message());
+                @unlink($temp_file_path);
+                return '';
+            }
+
+            $saved = $image_editor->save($final_file_path, 'image/jpeg');
+
+            if (!is_wp_error($saved) && $saved && isset($saved['path'])) {
+                $final_url = $upload_dir['baseurl'] . '/catalog-master-images/catalog-' . $catalog_id . '/' . $sub_dir . $final_filename;
+                CatalogMaster_Logger::info("Image processed and saved: {$final_url} from {$image_url}");
+                @unlink($temp_file_path);
+                return $final_url;
+            } else {
+                $error_message = is_wp_error($saved) ? $saved->get_error_message() : 'Unknown error saving processed image.';
+                CatalogMaster_Logger::error("Failed to save processed image {$final_file_path} from {$image_url}. Error: " . $error_message);
+            }
+        } else {
+            CatalogMaster_Logger::error("Failed to get image editor for {$image_url}. Error: " . $image_editor->get_error_message());
+        }
+
+        @unlink($temp_file_path); // Ensure temporary file is deleted
+        return ''; // Return empty string if any step fails
     }
 } 
