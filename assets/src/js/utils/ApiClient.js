@@ -248,4 +248,13 @@ export default class ApiClient {
             catalog_id: catalogId
         });
     }
+    
+    /**
+     * Clear Google Sheets cache for catalog
+     */
+    async clearCache(catalogId) {
+        return this.request('catalog_master_clear_cache', {
+            catalog_id: catalogId
+        });
+    }
 } 

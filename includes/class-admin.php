@@ -697,6 +697,9 @@ class CatalogMaster_Admin {
                         <button type="button" id="get-sheets-headers" class="button button-secondary" <?php echo empty($catalog->google_sheet_url) ? 'disabled' : ''; ?>>
                             Завантажити заголовки з Google Sheets
                         </button>
+                        <button type="button" id="clear-cache" class="button button-secondary" style="margin-left: 10px;" title="Очищує кеш для отримання свіжих даних з Google Sheets">
+                            🗑️ Очистити кеш
+                        </button>
                     </div>
                     
                     <!-- Traditional Mapping Configuration -->
@@ -807,7 +810,7 @@ class CatalogMaster_Admin {
                             
                             <div class="export-option">
                                 <h4>Excel</h4>
-                                <p>Експорт в форматі Excel (.xls)</p>
+                                <p>Експорт в форматі Excel (.xlsx)</p>
                                 <button type="button" class="button button-primary export-btn" data-catalog-id="<?php echo $catalog->id; ?>" data-format="excel">
                                     Експортувати Excel
                                 </button>

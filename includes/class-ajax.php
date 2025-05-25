@@ -22,6 +22,7 @@ class CatalogMaster_Ajax {
         add_action('wp_ajax_catalog_master_add_item', array($this, 'add_item'));
         add_action('wp_ajax_catalog_master_get_column_mapping', array($this, 'get_column_mapping'));
         add_action('wp_ajax_catalog_master_get_catalog_stats', array($this, 'get_catalog_stats'));
+        add_action('wp_ajax_catalog_master_clear_cache', array($this, 'clear_cache'));
     }
     
     /**
@@ -556,6 +557,42 @@ class CatalogMaster_Ajax {
         wp_send_json_success(array(
             'items_count' => $items_count,
             'mappings_count' => $mappings_count
+        ));
+    }
+
+    /**
+     * Clear Google Sheets cache for catalog
+     */
+    public function clear_cache() {
+        check_ajax_referer('catalog_master_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        $catalog_id = intval($_POST['catalog_id']);
+        
+        if (!$catalog_id) {
+            wp_send_json_error('Невірний ID каталогу');
+            return;
+        }
+        
+        // Clear all cache for this catalog
+        $transient_data_key = 'cm_import_data_' . $catalog_id;
+        $transient_total_key = 'cm_import_total_' . $catalog_id;
+        $transient_img_cache_key = 'cm_import_img_cache_' . $catalog_id;
+        
+        delete_transient($transient_data_key);
+        delete_transient($transient_total_key);
+        delete_transient($transient_img_cache_key);
+        
+        CatalogMaster_Logger::info('🗑️ Cache cleared for catalog', array(
+            'catalog_id' => $catalog_id,
+            'keys_cleared' => array($transient_data_key, $transient_total_key, $transient_img_cache_key)
+        ));
+        
+        wp_send_json_success(array(
+            'message' => 'Кеш очищено! Тепер можна отримати свіжі дані з Google Sheets.'
         ));
     }
 } 

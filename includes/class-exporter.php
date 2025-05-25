@@ -26,21 +26,50 @@ class CatalogMaster_Exporter {
         $catalog_id = intval($_GET['catalog_id']);
         $format = sanitize_text_field($_GET['format']);
         
+        CatalogMaster_Logger::info('🔄 Export request received', array(
+            'action' => $action,
+            'catalog_id' => $catalog_id,
+            'format' => $format,
+            'url' => $_SERVER['REQUEST_URI'] ?? ''
+        ));
+        
         if (!current_user_can('manage_options') && $action !== 'feed') {
+            CatalogMaster_Logger::error('❌ Export access denied', array(
+                'action' => $action,
+                'user_can_manage' => current_user_can('manage_options')
+            ));
             wp_die('Insufficient permissions');
         }
         
         if (!$catalog_id) {
+            CatalogMaster_Logger::error('❌ Export invalid catalog ID', array(
+                'catalog_id' => $catalog_id
+            ));
             wp_die('Invalid catalog ID');
         }
         
         switch ($action) {
             case 'download':
+                CatalogMaster_Logger::info('📥 Processing download export', array(
+                    'catalog_id' => $catalog_id,
+                    'format' => $format
+                ));
                 $this->export_download($catalog_id, $format);
                 break;
             case 'feed':
+                CatalogMaster_Logger::info('📡 Processing feed export', array(
+                    'catalog_id' => $catalog_id,
+                    'format' => $format
+                ));
                 $this->export_feed($catalog_id, $format);
                 break;
+            default:
+                CatalogMaster_Logger::error('❌ Invalid export action', array(
+                    'action' => $action,
+                    'catalog_id' => $catalog_id,
+                    'format' => $format
+                ));
+                wp_die('Invalid action: ' . $action);
         }
     }
     
@@ -129,16 +158,28 @@ class CatalogMaster_Exporter {
         
         switch ($format) {
             case 'csv':
+                CatalogMaster_Logger::info('📄 Exporting CSV feed', array('items_count' => count($items)));
                 $this->export_csv($catalog, $items, false);
                 break;
+            case 'excel':
+                CatalogMaster_Logger::info('📊 Exporting Excel feed', array('items_count' => count($items)));
+                $this->export_excel($catalog, $items, false);
+                break;
             case 'json':
+                CatalogMaster_Logger::info('🔗 Exporting JSON feed', array('items_count' => count($items)));
                 $this->export_json($catalog, $items);
                 break;
             case 'xml':
+                CatalogMaster_Logger::info('📝 Exporting XML feed', array('items_count' => count($items)));
                 $this->export_xml($catalog, $items);
                 break;
             default:
-                wp_die('Invalid format');
+                CatalogMaster_Logger::error('❌ Invalid export format in feed', array(
+                    'format' => $format,
+                    'catalog_id' => $catalog_id,
+                    'supported_formats' => ['csv', 'excel', 'json', 'xml']
+                ));
+                wp_die('Невалідний формат: ' . $format . '. Підтримувані формати: csv, excel, json, xml');
         }
     }
     
@@ -150,6 +191,10 @@ class CatalogMaster_Exporter {
             case 'csv':
                 header('Content-Type: text/csv; charset=utf-8');
                 echo "ID,Product ID,Product Name,Price,Quantity,Image URL,Sort Order,Description,Category ID 1,Category ID 2,Category ID 3,Category Name 1,Category Name 2,Category Name 3,Category Image 1,Category Image 2,Category Image 3,Category Sort 1,Category Sort 2,Category Sort 3\n";
+                break;
+            case 'excel':
+                // For empty excel feed, create minimal XLSX with headers only
+                $this->export_excel($catalog, array(), false);
                 break;
             case 'json':
                 header('Content-Type: application/json; charset=utf-8');

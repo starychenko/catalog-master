@@ -59,16 +59,25 @@ class CatalogMaster_GoogleSheets {
             return array('error' => 'Таблиця порожня або недоступна');
         }
         
-        CatalogMaster_Logger::info('✅ XLSX parsed successfully', array(
-            'headers_count' => count($rows[0]),
-            'rows_count' => count($rows) - 1,
-            'headers' => $rows[0]
+        // Extract headers (first row)
+        $headers = $rows[0];
+        $data_rows = array_slice($rows, 1);
+        
+        // Filter out completely empty rows
+        $filtered_data = self::filter_empty_rows($data_rows);
+        
+        CatalogMaster_Logger::info('✅ XLSX parsed and filtered successfully', array(
+            'headers_count' => count($headers),
+            'total_rows_parsed' => count($data_rows),
+            'non_empty_rows' => count($filtered_data),
+            'empty_rows_filtered' => count($data_rows) - count($filtered_data),
+            'headers' => $headers
         ));
         
         return array(
             'success' => true,
-            'headers' => $rows[0],
-            'data' => array_slice($rows, 1)
+            'headers' => $headers,
+            'data' => $filtered_data
         );
     }
     
@@ -166,12 +175,7 @@ class CatalogMaster_GoogleSheets {
         rewind($temp_file);
         
         while (($row = fgetcsv($temp_file, 0, ',', '"', '\\')) !== false) {
-            // Skip completely empty rows
-            if (count(array_filter($row, 'strlen')) === 0) {
-                continue;
-            }
-            
-            // Clean and sanitize each cell
+            // Clean and sanitize each cell first
             $cleaned_row = array();
             foreach ($row as $cell) {
                 // Handle line breaks within cells - replace with space for better display
@@ -186,7 +190,10 @@ class CatalogMaster_GoogleSheets {
                 $cleaned_row[] = $cell;
             }
             
-            $rows[] = $cleaned_row;
+            // Skip completely empty rows using consistent logic
+            if (!self::is_row_empty($cleaned_row)) {
+                $rows[] = $cleaned_row;
+            }
         }
         
         fclose($temp_file);
@@ -217,7 +224,10 @@ class CatalogMaster_GoogleSheets {
                 $cleaned_row[] = $cell;
             }
             
-            $rows[] = $cleaned_row;
+            // Skip completely empty rows using consistent logic
+            if (!self::is_row_empty($cleaned_row)) {
+                $rows[] = $cleaned_row;
+            }
         }
         
         return $rows;
@@ -465,6 +475,47 @@ class CatalogMaster_GoogleSheets {
         // In a full implementation, this would use Google Sheets API
         // For now, return default sheet
         return array('Sheet1');
+    }
+    
+    /**
+     * Filter out completely empty rows from data
+     * A row is considered empty if all its cells are empty (null, '', or whitespace only)
+     */
+    private static function filter_empty_rows($rows) {
+        return array_filter($rows, function($row) {
+            // Check if any cell in the row has meaningful content
+            foreach ($row as $cell) {
+                // Convert to string and trim whitespace
+                $cell_content = trim((string) $cell);
+                
+                // If any cell has content, the row is not empty
+                if ($cell_content !== '') {
+                    return true;
+                }
+            }
+            
+            // All cells are empty
+            return false;
+        });
+    }
+    
+    /**
+     * Check if a single row is empty
+     * Used for consistency across different parsing methods
+     */
+    private static function is_row_empty($row) {
+        if (empty($row)) {
+            return true;
+        }
+        
+        foreach ($row as $cell) {
+            $cell_content = trim((string) $cell);
+            if ($cell_content !== '') {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -794,7 +845,10 @@ class CatalogMaster_GoogleSheets {
                 $row_data[] = '';
             }
             
-            $rows[] = $row_data;
+            // Only add non-empty rows (but keep first row which is usually headers)
+            if (count($rows) === 0 || !self::is_row_empty($row_data)) {
+                $rows[] = $row_data;
+            }
             $current_row++;
         }
         

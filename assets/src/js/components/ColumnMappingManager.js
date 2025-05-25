@@ -54,6 +54,12 @@ export default class ColumnMappingManager {
             testConnectionBtn.addEventListener('click', (e) => this.testSheetsConnection(e));
         }
         
+        // Clear cache button
+        const clearCacheBtn = document.getElementById('clear-cache');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', (e) => this.clearCache(e));
+        }
+        
         // Add mapping row button
         const addMappingBtn = document.getElementById('add-mapping-row');
         if (addMappingBtn) {
@@ -141,7 +147,17 @@ export default class ColumnMappingManager {
         const originalText = btn.textContent;
         setButtonLoading(btn, true, originalText);
         
+        // Get catalog ID once at the beginning
+        const catalogId = this.state.currentCatalogId || 
+                         document.getElementById('save-column-mapping')?.getAttribute('data-catalog-id');
+        
         try {
+            // First clear cache to ensure fresh data
+            if (catalogId) {
+                await this.api.clearCache(catalogId);
+                console.log('🗑️ Cache cleared before getting headers');
+            }
+            
             const response = await this.api.getSheetsHeaders(sheetUrl, sheetName);
             this.googleHeaders = response.headers;
             
@@ -167,14 +183,42 @@ export default class ColumnMappingManager {
             
             // Load existing mappings from database after headers are loaded
             // This will restore saved mappings after page reload
-            const catalogId = this.state.currentCatalogId || 
-                             document.getElementById('save-column-mapping')?.getAttribute('data-catalog-id');
             if (catalogId) {
                 console.log('🔄 Loading existing mappings after headers loaded...');
                 await this.loadExistingData(catalogId);
             }
         } catch (error) {
             showMessage('Помилка завантаження заголовків', 'error');
+        } finally {
+            setButtonLoading(btn, false, originalText);
+        }
+    }
+    
+    /**
+     * Clear Google Sheets cache
+     */
+    async clearCache(e) {
+        e.preventDefault();
+        
+        const catalogId = this.state.currentCatalogId || 
+                         document.getElementById('save-column-mapping')?.getAttribute('data-catalog-id');
+        
+        if (!catalogId) {
+            showMessage('Не вдалося визначити ID каталогу', 'error');
+            return;
+        }
+        
+        const btn = e.target;
+        const originalText = btn.textContent;
+        setButtonLoading(btn, true, originalText);
+        
+        try {
+            const response = await this.api.clearCache(catalogId);
+            showMessage(response.message, 'success');
+            console.log('🗑️ Cache cleared successfully');
+        } catch (error) {
+            console.error('❌ Error clearing cache:', error);
+            showMessage('Помилка очистки кешу: ' + error.message, 'error');
         } finally {
             setButtonLoading(btn, false, originalText);
         }
