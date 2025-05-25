@@ -164,7 +164,7 @@ if ($catalog_column === 'product_image_url' || strpos($catalog_column, 'category
 
 ---
 
-## [1.1.0] - 2025
+## [1.1.0] - 2025-05-01
 
 ### 🎯 НОВІ ФУНКЦІЇ У ВЕРСІЇ 1.1.0
 
