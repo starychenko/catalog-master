@@ -1,7 +1,7 @@
 {
   "name": "catalog-master",
-  "version": "1.1.4",
-  "description": "WordPress плагін для управління каталогами товарів з імпортом із Google Sheets",
+  "version": "1.1.5",
+  "description": "WordPress plugin for managing product catalogs with Google Sheets integration",
   "type": "module",
   "scripts": {
     "dev": "vite",

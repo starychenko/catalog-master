@@ -164,6 +164,15 @@ export default class ColumnMappingManager {
             
             this.updateColumnStatus();
             showMessage(`Заголовки завантажено успішно (${response.headers.length} стовпців)`, 'success');
+            
+            // Load existing mappings from database after headers are loaded
+            // This will restore saved mappings after page reload
+            const catalogId = this.state.currentCatalogId || 
+                             document.getElementById('save-column-mapping')?.getAttribute('data-catalog-id');
+            if (catalogId) {
+                console.log('🔄 Loading existing mappings after headers loaded...');
+                await this.loadExistingData(catalogId);
+            }
         } catch (error) {
             showMessage('Помилка завантаження заголовків', 'error');
         } finally {
