@@ -34,7 +34,7 @@ class WordPressPluginBuilder {
             '.git',
             '.gitignore',
             '.gitattributes',
-            'build-plugin.js',
+            'build-plugin.cjs',
             'package.json',
             'package-lock.json',
             'vite.config.js',
@@ -47,7 +47,7 @@ class WordPressPluginBuilder {
             'ide-helper.php',
             'assets/src',        // Виключити src файли
             'VITE_MIGRATION_PLAN.md',
-            'VITE_SETUP_INSTRUCTIONS.md',
+            'VITE_MIGRATION_INSTRUCTIONS.md',
             'VITE_MIGRATION_COMPLETE.md',
             'hot'               // Vite hot file
         ];
@@ -350,14 +350,14 @@ async function main() {
 🔨 WordPress Plugin Builder для Catalog Master v1.1.5
 
 ВИКОРИСТАННЯ:
-  node build-plugin.js [опції]
+  node build-plugin.cjs [опції]
 
 ОПЦІЇ:
   --help, -h     Показати цю довідку
   --version, -v  Показати версію скрипта
 
 ПРИКЛАДИ:
-  node build-plugin.js           # Створити архів плагіна
+  node build-plugin.cjs           # Створити архів плагіна
   npm run build:plugin           # Рекомендований спосіб
 
 ПРОЦЕС ЗБІРКИ:

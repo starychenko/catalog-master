@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Catalog Master
- * Plugin URI: https://example.com/catalog-master
+ * Plugin URI: https://github.com/starychenko/catalog-master
  * Description: Professional WordPress plugin for managing product catalogs with Google Sheets XLSX integration, batch import system, and automated image processing
  * Version: 1.1.5
- * Author: Your Name
- * Author URI: https://example.com
+ * Author: Yevhenii Starychenko
+ * Author URI: https://t.me/evgeniistarychenko
  * Text Domain: catalog-master
  * Domain Path: /languages
  * Requires at least: 5.6
@@ -18,7 +18,7 @@
  * 
  * @package CatalogMaster
  * @version 1.1.5
- * @author Your Name
+ * @author Yevhenii Starychenko
  * @license MIT
  */
 

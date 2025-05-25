@@ -16,7 +16,7 @@
     "google-sheets",
     "vite"
   ],
-  "author": "Your Name",
+  "author": "Yevhenii Starychenko <evgeniistarychenko@gmail.com>",
   "license": "GPL-2.0-or-later",
   "devDependencies": {
     "@vitejs/plugin-legacy": "^6.1.1",
@@ -30,9 +30,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/catalog-master.git"
+    "url": "https://github.com/starychenko/catalog-master.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/catalog-master/issues"
+    "url": "https://github.com/starychenko/catalog-master/issues"
   }
 }

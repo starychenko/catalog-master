@@ -1,3 +1,9 @@
+/**
+ * Catalog Master - Main Application Entry Point
+ * Modern WordPress plugin for managing product catalogs with Google Sheets XLSX integration
+ * @author Yevhenii Starychenko
+ */
+
 import './styles/main.scss';
 
 // Core modules
@@ -11,25 +17,20 @@ import ImportManager from './js/components/ImportManager.js';
 import { showMessage, debounce } from './js/utils/helpers.js';
 import ApiClient from './js/utils/ApiClient.js';
 
-console.log('🚀 Catalog Master v1.1.0 - Vite Edition 2025 UPDATED!');
-
-// Boot application when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 NEW CODE: Catalog Master Vite Edition initializing...');
+// Initialize application when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Dev mode indicator
+    console.log('🚀 Catalog Master v1.1.5 - Vite Edition 2025 UPDATED!');
     
-    // Check if catalog_master_vite_params exists
-    if (typeof catalog_master_vite_params !== 'undefined') {
-        console.log('✅ NEW CODE: catalog_master_vite_params found:', catalog_master_vite_params);
+    // Initialize only on Catalog Master admin pages
+    if (document.querySelector('.catalog-master-admin')) {
+        const app = new CatalogMaster({
+            version: '1.1.5',
+            debug: window.catalogMasterConfig?.debug || false
+        });
         
-        const catalogMaster = new CatalogMaster(catalog_master_vite_params);
-        catalogMaster.init();
-        
-        // Make it globally accessible for debugging
-        window.catalogMaster = catalogMaster;
-        
-        console.log('✅ NEW CODE: Catalog Master initialized successfully');
-    } else {
-        console.error('❌ NEW CODE: catalog_master_vite_params not found - check WordPress localization');
+        // Make globally available for debugging
+        window.catalogMaster = app;
     }
 });
 
