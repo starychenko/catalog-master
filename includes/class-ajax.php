@@ -300,21 +300,26 @@ class CatalogMaster_Ajax {
             $search = sanitize_text_field($_POST['search'] ?? '');
             $sort_column = sanitize_text_field($_POST['sort_column'] ?? 'product_id');
             $sort_direction = sanitize_text_field($_POST['sort_direction'] ?? 'asc');
+            $filters = isset($_POST['filters']) ? $_POST['filters'] : array();
+            
+            // Sanitize and validate filters
+            $sanitized_filters = $this->sanitize_filters($filters);
             
             // Calculate offset
             $offset = ($page - 1) * $page_size;
             
-            // Get items with sorting and search
+            // Get items with sorting, search, and filters
             $items = CatalogMaster_Database::get_catalog_items_modern(
                 $catalog_id, 
                 $page_size, 
                 $offset, 
                 $search, 
                 $sort_column, 
-                $sort_direction
+                $sort_direction,
+                $sanitized_filters
             );
             
-            $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id, $search);
+            $total_count = CatalogMaster_Database::get_catalog_items_count($catalog_id, $search, $sanitized_filters);
             
             // Format data as objects for Modern Table Manager
             $data = array();
@@ -348,7 +353,8 @@ class CatalogMaster_Ajax {
                 'total' => $total_count,
                 'page' => $page,
                 'page_size' => $page_size,
-                'total_pages' => ceil($total_count / $page_size)
+                'total_pages' => ceil($total_count / $page_size),
+                'applied_filters' => $sanitized_filters
             ));
             
         } else {
@@ -594,5 +600,62 @@ class CatalogMaster_Ajax {
         wp_send_json_success(array(
             'message' => 'Кеш очищено! Тепер можна отримати свіжі дані з Google Sheets.'
         ));
+    }
+    
+    /**
+     * Sanitize and validate advanced filters
+     */
+    private function sanitize_filters($filters) {
+        if (!is_array($filters)) {
+            return array();
+        }
+        
+        $sanitized = array();
+        $allowed_columns = array(
+            'id', 'product_id', 'product_name', 'product_price', 'product_qty',
+            'product_image_url', 'product_sort_order', 'product_description',
+            'category_id_1', 'category_name_1', 'category_image_1', 'category_sort_order_1',
+            'category_id_2', 'category_name_2', 'category_image_2', 'category_sort_order_2',
+            'category_id_3', 'category_name_3', 'category_image_3', 'category_sort_order_3'
+        );
+        
+        $allowed_operators = array(
+            'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between',
+            'is_null', 'is_not_null', 'contains', 'not_contains'
+        );
+        
+        foreach ($filters as $filter) {
+            if (!isset($filter['column']) || !isset($filter['operator'])) {
+                continue;
+            }
+            
+            $column = sanitize_text_field($filter['column']);
+            $operator = sanitize_text_field($filter['operator']);
+            
+            // Validate column and operator
+            if (!in_array($column, $allowed_columns) || !in_array($operator, $allowed_operators)) {
+                continue;
+            }
+            
+            $sanitized_filter = array(
+                'column' => $column,
+                'operator' => $operator,
+                'logic' => isset($filter['logic']) ? sanitize_text_field($filter['logic']) : 'AND'
+            );
+            
+            // Sanitize values based on operator
+            if (in_array($operator, array('is_null', 'is_not_null'))) {
+                // No values needed for these operators
+            } elseif ($operator === 'between') {
+                $sanitized_filter['value'] = sanitize_text_field($filter['value'] ?? '');
+                $sanitized_filter['value2'] = sanitize_text_field($filter['value2'] ?? '');
+            } else {
+                $sanitized_filter['value'] = sanitize_text_field($filter['value'] ?? '');
+            }
+            
+            $sanitized[] = $sanitized_filter;
+        }
+        
+        return $sanitized;
     }
 } 

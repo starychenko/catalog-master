@@ -1,4 +1,5 @@
 import ModernTableManager from '../components/ModernTableManager.js';
+import AdvancedFilterManager from '../components/AdvancedFilterManager.js';
 import ColumnMappingManager from '../components/ColumnMappingManager.js';
 import TabManager from '../components/TabManager.js';
 import ExportManager from '../components/ExportManager.js';
@@ -64,6 +65,12 @@ export default class CatalogMaster {
         // Initialize modern table if catalog items table exists
         if (document.getElementById('catalog-items-table')) {
             this.components.dataTable = new ModernTableManager(this.api, this.state);
+            
+            // Initialize advanced filters for the table
+            this.components.advancedFilters = new AdvancedFilterManager(this.api, this.components.dataTable);
+            
+            // Give table manager reference to filters for proper initialization order
+            this.components.dataTable.setAdvancedFilters(this.components.advancedFilters);
         }
         
         // Initialize export manager

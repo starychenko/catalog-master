@@ -17,6 +17,8 @@ export default class ModernTableManager {
         this.sortDirection = 'asc';
         this.isLoading = false;
         this.data = [];
+        this.activeFilters = []; // Store active advanced filters
+        this.advancedFilters = null; // Reference to AdvancedFilterManager
         
         // Column definitions
         this.columns = [
@@ -128,6 +130,13 @@ export default class ModernTableManager {
         
         this.tableContainer = document.getElementById('modern-table-container');
         console.log('📊 Modern table structure created');
+        
+        // Try to initialize advanced filters now that table structure exists
+        if (this.advancedFilters) {
+            setTimeout(() => {
+                this.advancedFilters.forceInit();
+            }, 100);
+        }
     }
     
     /**
@@ -242,7 +251,8 @@ export default class ModernTableManager {
                 page_size: this.pageSize,
                 search: this.searchQuery,
                 sort_column: this.sortColumn,
-                sort_direction: this.sortDirection
+                sort_direction: this.sortDirection,
+                filters: this.activeFilters // Add advanced filters
             };
             
             console.log('📊 Loading table data:', params);
@@ -544,6 +554,32 @@ export default class ModernTableManager {
         if (key === 'dataRefresh' && value === true) {
             this.reload();
         }
+    }
+    
+    /**
+     * Set reference to AdvancedFilterManager
+     */
+    setAdvancedFilters(advancedFilters) {
+        this.advancedFilters = advancedFilters;
+        console.log('📊 ModernTableManager received AdvancedFilters reference');
+    }
+    
+    /**
+     * Apply advanced filters to the table
+     */
+    async applyAdvancedFilters(filters) {
+        this.activeFilters = filters;
+        this.currentPage = 1; // Reset to first page
+        await this.loadData();
+    }
+    
+    /**
+     * Clear all filters
+     */
+    async clearFilters() {
+        this.activeFilters = [];
+        this.currentPage = 1;
+        await this.loadData();
     }
     
     /**

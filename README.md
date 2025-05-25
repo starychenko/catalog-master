@@ -47,6 +47,7 @@
 
 ### 📊 **Сучасна таблиця даних**
 - 🔍 **Миттєвий пошук** та фільтрація
+- 🎯 **Розширена система фільтрів** - комбіновані умови з 11 операторами
 - 📈 **Сортування по всім полям**
 - 📱 **Повністю адаптивний дизайн**
 - 📌 **Закріплені заголовки** при прокрутці
@@ -266,6 +267,7 @@ extension=xml     # Для SimpleXML
 - [📥 Імпорт з Google Sheets XLSX](docs/import-xlsx.md)
 - [🖼️ Система обробки зображень](docs/image-processing.md)
 - [⚡ Батч-система для великих каталогів](docs/batch-import.md)
+- [🔍 Розширена система фільтрації](docs/advanced-filters.md)
 - [🎨 Frontend модулі та компоненти](docs/frontend-modules.md)
 - [🔌 Backend API та endpoints](docs/backend-api.md)
 - [🔧 Покращення мапінгу стовпців](docs/column-mapping-improvements.md)

@@ -313,7 +313,7 @@ class CatalogMaster_Database {
         return $wpdb->get_results($sql);
     }
     
-    public static function get_catalog_items_count($catalog_id, $search = '') {
+    public static function get_catalog_items_count($catalog_id, $search = '', $filters = array()) {
         global $wpdb;
         $table = $wpdb->prefix . 'catalog_master_items';
         
@@ -339,14 +339,22 @@ class CatalogMaster_Database {
             $params[] = $search_term;
         }
         
+        // Add advanced filters
+        if (!empty($filters)) {
+            $filter_conditions = self::build_filter_conditions($filters, $params);
+            if (!empty($filter_conditions)) {
+                $where_clause .= " AND ($filter_conditions)";
+            }
+        }
+        
         $sql = "SELECT COUNT(*) FROM $table $where_clause";
         return $wpdb->get_var($wpdb->prepare($sql, $params));
     }
     
     /**
-     * Get catalog items with modern pagination, sorting and search
+     * Get catalog items with modern pagination, sorting, search and filters
      */
-    public static function get_catalog_items_modern($catalog_id, $limit = 25, $offset = 0, $search = '', $sort_column = 'product_id', $sort_direction = 'asc') {
+    public static function get_catalog_items_modern($catalog_id, $limit = 25, $offset = 0, $search = '', $sort_column = 'product_id', $sort_direction = 'asc', $filters = array()) {
         global $wpdb;
         $table = $wpdb->prefix . 'catalog_master_items';
         
@@ -383,6 +391,14 @@ class CatalogMaster_Database {
             $params[] = $search_term;
             $params[] = $search_term;
             $params[] = $search_term;
+        }
+        
+        // Add advanced filters
+        if (!empty($filters)) {
+            $filter_conditions = self::build_filter_conditions($filters, $params);
+            if (!empty($filter_conditions)) {
+                $where_clause .= " AND ($filter_conditions)";
+            }
         }
         
         // Build the query
@@ -438,5 +454,91 @@ class CatalogMaster_Database {
             $item['catalog_id'] = $catalog_id;
             $wpdb->insert($table, $item);
         }
+    }
+    
+    /**
+     * Build SQL filter conditions for advanced filters
+     */
+    private static function build_filter_conditions($filters, &$params) {
+        global $wpdb;
+        
+        $conditions = array();
+        
+        foreach ($filters as $index => $filter) {
+            $column = $filter['column'];
+            $operator = $filter['operator'];
+            $value = isset($filter['value']) ? $filter['value'] : '';
+            $value2 = isset($filter['value2']) ? $filter['value2'] : '';
+            $logic = isset($filter['logic']) && $index > 0 ? $filter['logic'] : '';
+            
+            $condition = '';
+            
+            switch ($operator) {
+                case 'eq':
+                    $condition = "$column = %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'neq':
+                    $condition = "$column != %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'gt':
+                    $condition = "$column > %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'gte':
+                    $condition = "$column >= %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'lt':
+                    $condition = "$column < %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'lte':
+                    $condition = "$column <= %s";
+                    $params[] = $value;
+                    break;
+                    
+                case 'between':
+                    $condition = "$column BETWEEN %s AND %s";
+                    $params[] = $value;
+                    $params[] = $value2;
+                    break;
+                    
+                case 'is_null':
+                    $condition = "($column IS NULL OR $column = '')";
+                    break;
+                    
+                case 'is_not_null':
+                    $condition = "($column IS NOT NULL AND $column != '')";
+                    break;
+                    
+                case 'contains':
+                    $condition = "$column LIKE %s";
+                    $params[] = '%' . $wpdb->esc_like($value) . '%';
+                    break;
+                    
+                case 'not_contains':
+                    $condition = "$column NOT LIKE %s";
+                    $params[] = '%' . $wpdb->esc_like($value) . '%';
+                    break;
+            }
+            
+            if (!empty($condition)) {
+                // Add logic operator for subsequent conditions
+                if ($index > 0 && !empty($logic)) {
+                    $conditions[] = $logic . ' ' . $condition;
+                } else {
+                    $conditions[] = $condition;
+                }
+            }
+        }
+        
+        return implode(' ', $conditions);
     }
 } 
