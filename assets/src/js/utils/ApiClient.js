@@ -267,4 +267,86 @@ export default class ApiClient {
             catalog_id: catalogId
         });
     }
+    
+    /**
+     * Upload image for catalog item
+     */
+    async uploadImage(catalogId, itemId, column, imageFile) {
+        console.log('🖼️ Uploading image:', {
+            catalogId,
+            itemId,
+            column,
+            fileName: imageFile.name,
+            fileSize: imageFile.size
+        });
+        
+        const formData = new FormData();
+        formData.append('action', 'catalog_master_upload_image');
+        formData.append('nonce', this.nonce);
+        formData.append('catalog_id', catalogId);
+        formData.append('item_id', itemId);
+        formData.append('column', column);
+        formData.append('image', imageFile);
+        
+        try {
+            const httpResponse = await fetch(this.ajaxUrl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            console.log('📡 Upload response status:', httpResponse.status);
+            
+            if (!httpResponse.ok) {
+                let errorText = `HTTP error! status: ${httpResponse.status}`;
+                try {
+                    const responseBody = await httpResponse.text();
+                    errorText += ` - ${responseBody.substring(0, 200)}`;
+                } catch (e) {
+                    // Ignore if can't read body
+                }
+                throw new Error(errorText);
+            }
+            
+            let result;
+            try {
+                result = await httpResponse.json();
+            } catch (e) {
+                const responseText = await httpResponse.text().catch(() => "Could not read response text.");
+                console.error('❌ Upload Error: Response is not valid JSON.', { 
+                    status: httpResponse.status, 
+                    responseTextPreview: responseText.substring(0, 500) 
+                });
+                throw new Error(`Server returned non-JSON response (status ${httpResponse.status}). Check console for response preview.`);
+            }
+
+            console.log('📥 Upload Result:', result);
+            
+            if (typeof result !== 'object' || result === null) {
+                console.error('❌ Upload Error: Parsed result is not an object.', { result });
+                throw new Error('Invalid response structure from server.');
+            }
+            
+            if (!result.hasOwnProperty('success')) {
+                console.error('❌ Upload Error: Response missing "success" property.', { result });
+                throw new Error('Malformed response from server: missing "success" flag.');
+            }
+            
+            if (!result.success) {
+                const errorMessage = (typeof result.data === 'string' && result.data) ? result.data : 
+                                     (result.data && typeof result.data.message === 'string' && result.data.message) ? result.data.message :
+                                     'Unknown upload error';
+                throw new Error(errorMessage);
+            }
+            
+            return result.data !== undefined ? result.data : {};
+        } catch (error) {
+            console.error('❌ Upload Error:', { error: error.message, stack: error.stack });
+            if (error instanceof Error) {
+                throw error;
+            } else {
+                throw new Error(String(error));
+            }
+        }
+    }
 } 

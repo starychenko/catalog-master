@@ -23,6 +23,8 @@ class CatalogMaster_Ajax {
         add_action('wp_ajax_catalog_master_get_column_mapping', array($this, 'get_column_mapping'));
         add_action('wp_ajax_catalog_master_get_catalog_stats', array($this, 'get_catalog_stats'));
         add_action('wp_ajax_catalog_master_clear_cache', array($this, 'clear_cache'));
+        add_action('wp_ajax_catalog_master_upload_image', array($this, 'upload_image'));
+        add_action('wp_ajax_catalog_master_cleanup_test_image', array($this, 'cleanup_test_image'));
     }
     
     /**
@@ -401,7 +403,6 @@ class CatalogMaster_Ajax {
                 
                 // Actions
                 $row[] = '<div class="actions-column">' .
-                         '<button class="button button-small edit-item" data-id="' . $item->id . '" title="Редагувати">✏️</button> ' .
                          '<button class="button button-small button-link-delete delete-item" data-id="' . $item->id . '" title="Видалити">🗑️</button>' .
                          '</div>';
                 
@@ -677,5 +678,542 @@ class CatalogMaster_Ajax {
         }
         
         return $sanitized;
+    }
+    
+    /**
+     * Upload and process image for catalog item
+     */
+    public function upload_image() {
+        check_ajax_referer('catalog_master_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        // Check if file was uploaded
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error('Помилка завантаження файлу');
+            return;
+        }
+        
+        $catalog_id = intval($_POST['catalog_id']);
+        $item_id = intval($_POST['item_id']);
+        $column = sanitize_text_field($_POST['column']);
+        
+        if (!$catalog_id || !$item_id || !$column) {
+            wp_send_json_error('Невірні параметри');
+            return;
+        }
+        
+        // Validate column type
+        $allowed_image_columns = array(
+            'product_image_url', 
+            'category_image_1', 
+            'category_image_2', 
+            'category_image_3'
+        );
+        
+        if (!in_array($column, $allowed_image_columns)) {
+            wp_send_json_error('Невірний тип стовпця');
+            return;
+        }
+        
+        // Get current item data
+        global $wpdb;
+        $table = $wpdb->prefix . 'catalog_master_items';
+        $item = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            $item_id
+        ));
+        
+        if (!$item) {
+            wp_send_json_error('Запис не знайдено');
+            return;
+        }
+        
+        // Determine image type and filename base
+        if ($column === 'product_image_url') {
+            $image_type = 'product';
+            $filename_base = !empty($item->product_id) ? sanitize_file_name($item->product_id) : ('product_' . $item_id);
+        } else {
+            // Category image
+            $image_type = 'category';
+            $level = substr($column, -1); // Extract level (1, 2, 3)
+            
+            $category_id_field = 'category_id_' . $level;
+            $category_name_field = 'category_name_' . $level;
+            
+            // Prefer category_id, fallback to category_name with transliteration
+            if (!empty($item->$category_id_field)) {
+                $filename_base = sanitize_file_name($item->$category_id_field);
+            } elseif (!empty($item->$category_name_field)) {
+                $filename_base = $this->text_to_filename($item->$category_name_field);
+            } else {
+                $filename_base = 'category' . $level . '_' . $item_id;
+            }
+        }
+        
+        // Check PHP extensions
+        $gd_enabled = extension_loaded('gd');
+        $imagick_enabled = extension_loaded('imagick');
+        
+        CatalogMaster_Logger::info('🖼️ Starting image upload', array(
+            'catalog_id' => $catalog_id,
+            'item_id' => $item_id,
+            'column' => $column,
+            'image_type' => $image_type,
+            'filename_base' => $filename_base,
+            'file_name' => $_FILES['image']['name'],
+            'file_size' => $_FILES['image']['size'],
+            'gd_enabled' => $gd_enabled,
+            'imagick_enabled' => $imagick_enabled,
+            'php_version' => PHP_VERSION
+        ));
+        
+        // Check if we have any image processing capability
+        if (!$gd_enabled && !$imagick_enabled) {
+            CatalogMaster_Logger::error('❌ No image processing extensions available');
+            wp_send_json_error('Сервер не підтримує обробку зображень (потрібен GD або ImageMagick)');
+            return;
+        }
+        
+        try {
+            // Delete old image if exists
+            $old_image_url = $item->$column;
+            if (!empty($old_image_url)) {
+                $this->delete_local_image($old_image_url, $catalog_id);
+            }
+            
+            // Process uploaded image
+            $new_image_url = $this->process_uploaded_image(
+                $_FILES['image']['tmp_name'],
+                $catalog_id,
+                $filename_base,
+                $image_type
+            );
+            
+            if (empty($new_image_url)) {
+                wp_send_json_error('Помилка обробки зображення');
+                return;
+            }
+            
+            // Update database
+            $result = $wpdb->update(
+                $table,
+                array($column => $new_image_url),
+                array('id' => $item_id)
+            );
+            
+            if ($result === false) {
+                wp_send_json_error('Помилка оновлення бази даних');
+                return;
+            }
+            
+            CatalogMaster_Logger::info('✅ Image uploaded successfully', array(
+                'item_id' => $item_id,
+                'column' => $column,
+                'new_url' => $new_image_url
+            ));
+            
+            wp_send_json_success(array(
+                'message' => 'Зображення завантажено успішно',
+                'image_url' => $new_image_url,
+                'column' => $column
+            ));
+            
+        } catch (Exception $e) {
+            CatalogMaster_Logger::error('❌ Image upload failed', array(
+                'error' => $e->getMessage(),
+                'item_id' => $item_id,
+                'column' => $column
+            ));
+            
+            // Try fallback method without resizing if main method fails
+            if (strpos($e->getMessage(), 'зміни розміру') !== false || strpos($e->getMessage(), 'редактора зображень') !== false) {
+                CatalogMaster_Logger::info('🔄 Trying fallback method without resizing');
+                try {
+                    $fallback_url = $this->process_uploaded_image_fallback(
+                        $_FILES['image']['tmp_name'],
+                        $catalog_id,
+                        $filename_base,
+                        $image_type
+                    );
+                    
+                    if (!empty($fallback_url)) {
+                        // Update database with fallback result
+                        $result = $wpdb->update(
+                            $table,
+                            array($column => $fallback_url),
+                            array('id' => $item_id)
+                        );
+                        
+                        if ($result !== false) {
+                            CatalogMaster_Logger::info('✅ Image uploaded via fallback method', array(
+                                'item_id' => $item_id,
+                                'column' => $column,
+                                'fallback_url' => $fallback_url
+                            ));
+                            
+                            wp_send_json_success(array(
+                                'message' => 'Зображення завантажено (без зміни розміру)',
+                                'image_url' => $fallback_url,
+                                'column' => $column
+                            ));
+                            return;
+                        }
+                    }
+                } catch (Exception $fallback_error) {
+                    CatalogMaster_Logger::error('❌ Fallback method also failed', array(
+                        'fallback_error' => $fallback_error->getMessage()
+                    ));
+                }
+            }
+            
+            wp_send_json_error('Помилка: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Process uploaded image file (similar to download_and_process_image but for local files)
+     */
+    private function process_uploaded_image($temp_file_path, $catalog_id, $filename_base, $type = 'product', $target_width = 1000, $target_height = 1000) {
+        CatalogMaster_Logger::info('🖼️ Starting image processing', array(
+            'temp_file_path' => $temp_file_path,
+            'filename_base' => $filename_base,
+            'type' => $type,
+            'file_exists' => file_exists($temp_file_path),
+            'file_size' => file_exists($temp_file_path) ? filesize($temp_file_path) : 'N/A',
+            'is_readable' => is_readable($temp_file_path)
+        ));
+        
+        // Validate file exists
+        if (!file_exists($temp_file_path)) {
+            throw new Exception('Файл не знайдено: ' . $temp_file_path);
+        }
+        
+        // Check if file is readable
+        if (!is_readable($temp_file_path)) {
+            throw new Exception('Файл недоступний для читання: ' . $temp_file_path);
+        }
+        
+        // Get file size
+        $file_size = filesize($temp_file_path);
+        if ($file_size === false || $file_size === 0) {
+            throw new Exception('Файл порожній або пошкоджений');
+        }
+        
+        CatalogMaster_Logger::info('📊 File validation passed', array(
+            'file_size' => $file_size
+        ));
+        
+        // Validate image using getimagesize
+        $image_info = getimagesize($temp_file_path);
+        if ($image_info === false) {
+            // Try to get more information about why it failed
+            $mime_type = mime_content_type($temp_file_path);
+            CatalogMaster_Logger::error('❌ getimagesize failed', array(
+                'file_path' => $temp_file_path,
+                'mime_type' => $mime_type,
+                'file_size' => $file_size
+            ));
+            throw new Exception('Невірний формат зображення. MIME тип: ' . $mime_type);
+        }
+        
+        CatalogMaster_Logger::info('📸 Image info retrieved', array(
+            'width' => $image_info[0],
+            'height' => $image_info[1],
+            'mime_type' => $image_info['mime'],
+            'channels' => isset($image_info['channels']) ? $image_info['channels'] : 'N/A'
+        ));
+        
+        // Create directory structure
+        $upload_dir = wp_upload_dir();
+        $base_images_dir = $upload_dir['basedir'] . '/catalog-master-images/catalog-' . $catalog_id . '/';
+        $sub_dir = ($type === 'product') ? 'products/' : 'categories/';
+        $full_target_dir = $base_images_dir . $sub_dir;
+        
+        if (!file_exists($full_target_dir)) {
+            if (!wp_mkdir_p($full_target_dir)) {
+                throw new Exception('Не вдалося створити папку: ' . $full_target_dir);
+            }
+            CatalogMaster_Logger::info('📁 Created directory: ' . $full_target_dir);
+        }
+        
+        $final_filename = sanitize_file_name($filename_base) . '.jpg';
+        $final_file_path = $full_target_dir . $final_filename;
+        
+        CatalogMaster_Logger::info('🎯 Target file path: ' . $final_file_path);
+        
+        // Get available image editors
+        $available_editors = wp_image_editor_supports();
+        CatalogMaster_Logger::info('🔧 Available image editors', $available_editors);
+        
+        // Process image with WordPress Image Editor
+        $image_editor = wp_get_image_editor($temp_file_path);
+        
+        if (is_wp_error($image_editor)) {
+            CatalogMaster_Logger::error('❌ wp_get_image_editor failed', array(
+                'error_message' => $image_editor->get_error_message(),
+                'error_data' => $image_editor->get_error_data()
+            ));
+            throw new Exception('Помилка редактора зображень: ' . $image_editor->get_error_message());
+        }
+        
+        CatalogMaster_Logger::info('✅ Image editor created successfully');
+        
+        // Get current image size
+        $current_size = $image_editor->get_size();
+        CatalogMaster_Logger::info('📐 Current image size', $current_size);
+        
+        // Set quality and resize
+        $image_editor->set_quality(90);
+        CatalogMaster_Logger::info('🎨 Quality set to 90');
+        
+        // Always resize to target dimensions (1000x1000)
+        CatalogMaster_Logger::info('🔄 Resizing image to target size', array(
+            'from' => $current_size['width'] . 'x' . $current_size['height'],
+            'to' => $target_width . 'x' . $target_height
+        ));
+        
+        $resized = $image_editor->resize($target_width, $target_height, true); // true for crop
+        
+        if (is_wp_error($resized)) {
+            CatalogMaster_Logger::error('❌ Resize failed', array(
+                'error_message' => $resized->get_error_message(),
+                'error_data' => $resized->get_error_data(),
+                'target_width' => $target_width,
+                'target_height' => $target_height,
+                'current_width' => $current_size['width'],
+                'current_height' => $current_size['height']
+            ));
+            throw new Exception('Помилка зміни розміру: ' . $resized->get_error_message());
+        }
+        CatalogMaster_Logger::info('✅ Image resized successfully to ' . $target_width . 'x' . $target_height);
+        
+        // Save as JPG
+        $saved = $image_editor->save($final_file_path, 'image/jpeg');
+        
+        if (is_wp_error($saved)) {
+            CatalogMaster_Logger::error('❌ Save failed (WP_Error)', array(
+                'error_message' => $saved->get_error_message(),
+                'error_data' => $saved->get_error_data(),
+                'target_path' => $final_file_path
+            ));
+            throw new Exception('Помилка збереження: ' . $saved->get_error_message());
+        }
+        
+        if (!$saved || !isset($saved['path']) || !file_exists($saved['path'])) {
+            CatalogMaster_Logger::error('❌ Save failed (file not created)', array(
+                'saved_result' => $saved,
+                'target_path' => $final_file_path,
+                'file_exists' => file_exists($final_file_path)
+            ));
+            throw new Exception('Помилка збереження: файл не створено');
+        }
+        
+        // Verify saved file
+        $saved_file_size = filesize($saved['path']);
+        if ($saved_file_size === false || $saved_file_size === 0) {
+            throw new Exception('Збережений файл порожній');
+        }
+        
+        // Return URL
+        $final_url = $upload_dir['baseurl'] . '/catalog-master-images/catalog-' . $catalog_id . '/' . $sub_dir . $final_filename;
+        
+        CatalogMaster_Logger::info('🎨 Image processed and saved successfully', array(
+            'final_url' => $final_url,
+            'filename_base' => $filename_base,
+            'original_size' => $file_size,
+            'processed_size' => $saved_file_size,
+            'saved_path' => $saved['path']
+        ));
+        
+        return $final_url;
+    }
+    
+    /**
+     * Fallback method for image processing (without resizing)
+     */
+    private function process_uploaded_image_fallback($temp_file_path, $catalog_id, $filename_base, $type = 'product') {
+        CatalogMaster_Logger::info('🔄 Starting fallback image processing', array(
+            'temp_file_path' => $temp_file_path,
+            'filename_base' => $filename_base,
+            'type' => $type
+        ));
+        
+        // Validate file exists
+        if (!file_exists($temp_file_path)) {
+            throw new Exception('Файл не знайдено для fallback обробки');
+        }
+        
+        // Basic validation
+        $image_info = getimagesize($temp_file_path);
+        if ($image_info === false) {
+            throw new Exception('Fallback: невірний формат зображення');
+        }
+        
+        // Create directory structure
+        $upload_dir = wp_upload_dir();
+        $base_images_dir = $upload_dir['basedir'] . '/catalog-master-images/catalog-' . $catalog_id . '/';
+        $sub_dir = ($type === 'product') ? 'products/' : 'categories/';
+        $full_target_dir = $base_images_dir . $sub_dir;
+        
+        if (!file_exists($full_target_dir)) {
+            if (!wp_mkdir_p($full_target_dir)) {
+                throw new Exception('Fallback: не вдалося створити папку: ' . $full_target_dir);
+            }
+        }
+        
+        // Determine file extension based on mime type
+        $extension = 'jpg'; // Default
+        switch ($image_info['mime']) {
+            case 'image/jpeg':
+                $extension = 'jpg';
+                break;
+            case 'image/png':
+                $extension = 'png';
+                break;
+            case 'image/gif':
+                $extension = 'gif';
+                break;
+            case 'image/webp':
+                $extension = 'webp';
+                break;
+            default:
+                $extension = 'jpg';
+        }
+        
+        $final_filename = sanitize_file_name($filename_base) . '.' . $extension;
+        $final_file_path = $full_target_dir . $final_filename;
+        
+        // Simply copy the file
+        if (!copy($temp_file_path, $final_file_path)) {
+            throw new Exception('Fallback: не вдалося скопіювати файл');
+        }
+        
+        // Verify copied file
+        if (!file_exists($final_file_path) || filesize($final_file_path) === 0) {
+            throw new Exception('Fallback: скопійований файл порожній або не існує');
+        }
+        
+        // Return URL
+        $final_url = $upload_dir['baseurl'] . '/catalog-master-images/catalog-' . $catalog_id . '/' . $sub_dir . $final_filename;
+        
+        CatalogMaster_Logger::info('✅ Fallback image processing completed', array(
+            'final_url' => $final_url,
+            'original_mime' => $image_info['mime'],
+            'final_extension' => $extension,
+            'file_size' => filesize($final_file_path)
+        ));
+        
+        return $final_url;
+    }
+    
+    /**
+     * Delete local image file
+     */
+    private function delete_local_image($image_url, $catalog_id) {
+        if (empty($image_url)) {
+            return;
+        }
+        
+        // Check if this is a local catalog master image
+        if (strpos($image_url, '/catalog-master-images/catalog-' . $catalog_id . '/') === false) {
+            return; // Not our image, don't delete
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $base_url = $upload_dir['baseurl'] . '/catalog-master-images/catalog-' . $catalog_id . '/';
+        
+        if (strpos($image_url, $base_url) === 0) {
+            $relative_path = substr($image_url, strlen($base_url));
+            $file_path = $upload_dir['basedir'] . '/catalog-master-images/catalog-' . $catalog_id . '/' . $relative_path;
+            
+            if (file_exists($file_path)) {
+                if (unlink($file_path)) {
+                    CatalogMaster_Logger::info('🗑️ Deleted old image', array(
+                        'file_path' => $file_path,
+                        'image_url' => $image_url
+                    ));
+                } else {
+                    CatalogMaster_Logger::warning('⚠️ Could not delete old image', array(
+                        'file_path' => $file_path
+                    ));
+                }
+            }
+        }
+    }
+    
+    /**
+     * Convert text to filename-safe format with transliteration
+     */
+    private function text_to_filename($text) {
+        // Transliteration map for Cyrillic and other characters
+        $transliteration = array(
+            'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'yo', 'ж' => 'zh',
+            'з' => 'z', 'и' => 'i', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o',
+            'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'ts',
+            'ч' => 'ch', 'ш' => 'sh', 'щ' => 'sch', 'ъ' => '', 'ы' => 'y', 'ь' => '', 'э' => 'e', 'ю' => 'yu', 'я' => 'ya',
+            'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Д' => 'D', 'Е' => 'E', 'Ё' => 'Yo', 'Ж' => 'Zh',
+            'З' => 'Z', 'И' => 'I', 'Й' => 'Y', 'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N', 'О' => 'O',
+            'П' => 'P', 'Р' => 'R', 'С' => 'S', 'Т' => 'T', 'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'Ts',
+            'Ч' => 'Ch', 'Ш' => 'Sh', 'Щ' => 'Sch', 'Ъ' => '', 'Ы' => 'Y', 'Ь' => '', 'Э' => 'E', 'Ю' => 'Yu', 'Я' => 'Ya',
+            // Ukrainian specific
+            'і' => 'i', 'ї' => 'yi', 'є' => 'ye', 'ґ' => 'g',
+            'І' => 'I', 'Ї' => 'Yi', 'Є' => 'Ye', 'Ґ' => 'G'
+        );
+        
+        // Apply transliteration
+        $text = strtr($text, $transliteration);
+        
+        // Convert to lowercase
+        $text = strtolower($text);
+        
+        // Replace non-alphanumeric characters with underscore
+        $text = preg_replace('/[^a-z0-9]+/', '_', $text);
+        
+        // Remove leading/trailing underscores
+        $text = trim($text, '_');
+        
+        // Limit length
+        $text = substr($text, 0, 50);
+        
+        // Ensure it's not empty
+        if (empty($text)) {
+            $text = 'image';
+        }
+        
+        return $text;
+    }
+    
+    /**
+     * Cleanup test image file
+     */
+    public function cleanup_test_image() {
+        // Verify nonce and permissions
+        if (!wp_verify_nonce($_POST['nonce'], 'cleanup_test_image') || !current_user_can('manage_options')) {
+            wp_send_json_error('Invalid permissions');
+            return;
+        }
+        
+        $file_path = urldecode($_POST['path']);
+        
+        // Security check: only allow deletion of test images in uploads directory
+        $upload_dir = wp_upload_dir();
+        if (strpos($file_path, $upload_dir['basedir']) !== 0 || strpos($file_path, 'test_image_') === false) {
+            wp_send_json_error('Invalid file path');
+            return;
+        }
+        
+        // Delete the file
+        if (file_exists($file_path)) {
+            if (unlink($file_path)) {
+                wp_send_json_success('Test image cleaned up');
+            } else {
+                wp_send_json_error('Could not delete test image');
+            }
+        } else {
+            wp_send_json_success('Test image already cleaned up');
+        }
     }
 } 

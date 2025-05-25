@@ -20,7 +20,7 @@ import ApiClient from './js/utils/ApiClient.js';
 // Initialize application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     // Dev mode indicator
-    console.log('🚀 Catalog Master v1.2.0 - Vite Edition 2025 UPDATED!');
+    console.log('🚀 Catalog Master v1.2.1 - Vite Edition 2025 UPDATED!');
     
     // Initialize only on Catalog Master admin pages
     if (document.querySelector('.catalog-master-admin')) {
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Initialize application with proper config
         const app = new CatalogMaster({
-            version: '1.2.0',
+            version: '1.2.1',
             debug: window.catalogMasterConfig?.debug || false,
             ajax_url: config.ajax_url,
             nonce: config.nonce,

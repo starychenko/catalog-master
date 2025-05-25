@@ -19,6 +19,7 @@ export default class ModernTableManager {
         this.data = [];
         this.activeFilters = []; // Store active advanced filters
         this.advancedFilters = null; // Reference to AdvancedFilterManager
+        this.lastPresetOrder = null; // Store preset column order
         
         // Column definitions - Full set
         this.allColumns = [
@@ -46,17 +47,19 @@ export default class ModernTableManager {
             { key: 'category_image_3', title: 'Зобр. Кат. 3', width: '90px', sortable: false, type: 'image', group: 'category3' },
             { key: 'category_sort_order_3', title: 'Пор. Кат. 3', width: '90px', sortable: true, type: 'number', group: 'category3' },
             
-            { key: 'actions', title: 'Дії', width: '120px', sortable: false, type: 'actions', group: 'system' }
+            { key: 'actions', title: 'Дії', width: '80px', sortable: false, type: 'actions', group: 'system' }
         ];
         
         // Default visible columns (compact view)
         this.defaultVisibleColumns = [
-            'id', 'product_id', 'product_name', 'product_price', 'product_qty', 
-            'category_name_1', 'category_name_2', 'category_name_3', 'actions'
+            'id', 'actions', 'product_id', 'product_name', 'product_price', 'product_qty', 
+            'product_image_url', 'category_name_1', 'category_name_2', 'category_name_3'
         ];
         
-        // Set initial columns to default visible
-        this.columns = this.allColumns.filter(col => this.defaultVisibleColumns.includes(col.key));
+        // Set initial columns to default visible in the specified order
+        this.columns = this.defaultVisibleColumns.map(key => 
+            this.allColumns.find(col => col.key === key)
+        ).filter(col => col !== undefined);
     }
     
     init() {
@@ -350,9 +353,6 @@ export default class ModernTableManager {
             case 'actions':
                 return `
                     <div class="table-actions">
-                        <button type="button" class="btn-edit" data-id="${item.id}" title="Редагувати">
-                            ✏️
-                        </button>
                         <button type="button" class="btn-delete" data-id="${item.id}" title="Видалити">
                             🗑️
                         </button>
@@ -372,17 +372,29 @@ export default class ModernTableManager {
         if (!tbody) return;
         
         tbody.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.btn-edit');
             const deleteBtn = e.target.closest('.btn-delete');
-            
-            if (editBtn) {
-                const itemId = editBtn.getAttribute('data-id');
-                this.editItem(itemId);
-            }
             
             if (deleteBtn) {
                 const itemId = deleteBtn.getAttribute('data-id');
                 this.deleteItem(itemId);
+            }
+        });
+        
+        // Click on image cells for image upload
+        tbody.addEventListener('click', (e) => {
+            const cell = e.target.closest('td');
+            if (!cell) return;
+            
+            const column = cell.getAttribute('data-column');
+            const row = cell.closest('tr');
+            const itemId = row.getAttribute('data-id');
+            
+            // Check if this is an image column
+            const imageColumns = ['product_image_url', 'category_image_1', 'category_image_2', 'category_image_3'];
+            if (imageColumns.includes(column)) {
+                e.preventDefault();
+                this.showImageUploadDialog(itemId, column, cell);
+                return;
             }
         });
         
@@ -395,8 +407,9 @@ export default class ModernTableManager {
             const row = cell.closest('tr');
             const itemId = row.getAttribute('data-id');
             
-            // Skip actions column and non-editable columns
-            if (column === 'actions' || column === 'product_image_url' || column === 'id') {
+            // Skip actions column and image columns (they have their own click handler)
+            const imageColumns = ['product_image_url', 'category_image_1', 'category_image_2', 'category_image_3'];
+            if (column === 'actions' || imageColumns.includes(column) || column === 'id') {
                 return;
             }
             
@@ -579,10 +592,7 @@ export default class ModernTableManager {
         this.loadData();
     }
     
-    editItem(itemId) {
-        console.log('📊 Edit item:', itemId);
-        // TODO: Implement edit functionality
-    }
+
     
     async deleteItem(itemId) {
         if (!confirm('Ви впевнені, що хочете видалити цей запис?')) return;
@@ -744,7 +754,7 @@ export default class ModernTableManager {
         let visibleColumns = [];
         switch (preset) {
             case 'compact':
-                visibleColumns = ['id', 'product_name', 'product_price', 'product_qty', 'category_name_1', 'actions'];
+                visibleColumns = ['id', 'actions', 'product_id', 'product_name', 'product_price', 'product_qty', 'product_image_url', 'category_name_1', 'category_name_2', 'category_name_3'];
                 break;
             case 'full':
                 visibleColumns = this.allColumns.map(col => col.key);
@@ -758,6 +768,9 @@ export default class ModernTableManager {
         checkboxes.forEach(checkbox => {
             checkbox.checked = visibleColumns.includes(checkbox.value);
         });
+        
+        // Store preset order for later use
+        this.lastPresetOrder = visibleColumns;
     }
     
     /**
@@ -767,8 +780,27 @@ export default class ModernTableManager {
         const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
         const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
         
-        // Update visible columns
-        this.columns = this.allColumns.filter(col => selectedColumns.includes(col.key));
+        // Update visible columns with correct order
+        if (this.lastPresetOrder && this.lastPresetOrder.length > 0) {
+            // Use preset order if available
+            this.columns = this.lastPresetOrder
+                .filter(key => selectedColumns.includes(key))
+                .map(key => this.allColumns.find(col => col.key === key))
+                .filter(col => col !== undefined);
+            
+            // Add any newly selected columns that weren't in the preset
+            const remainingColumns = selectedColumns.filter(key => !this.lastPresetOrder.includes(key));
+            remainingColumns.forEach(key => {
+                const col = this.allColumns.find(c => c.key === key);
+                if (col) this.columns.push(col);
+            });
+        } else {
+            // Use default order from allColumns
+            this.columns = this.allColumns.filter(col => selectedColumns.includes(col.key));
+        }
+        
+        // Clear preset order after use
+        this.lastPresetOrder = null;
         
         // Update table headers and structure
         this.updateTableStructure();
@@ -1021,12 +1053,268 @@ export default class ModernTableManager {
     }
     
     /**
+     * Show image upload dialog
+     */
+    showImageUploadDialog(itemId, column, cell) {
+        const catalogId = this.getCatalogId();
+        if (!catalogId) {
+            console.error('📊 No catalog ID for image upload');
+            return;
+        }
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('image-upload-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create and show modal
+        const modal = this.createImageUploadModal(catalogId, itemId, column, cell);
+        document.body.appendChild(modal);
+        
+        console.log('📊 Image upload dialog shown for:', { itemId, column });
+    }
+    
+    /**
+     * Create image upload modal
+     */
+    createImageUploadModal(catalogId, itemId, column, cell) {
+        const modal = document.createElement('div');
+        modal.id = 'image-upload-modal';
+        modal.className = 'image-upload-modal';
+        
+        // Determine column title for display
+        const columnConfig = this.allColumns.find(col => col.key === column);
+        const columnTitle = columnConfig ? columnConfig.title : column;
+        
+        modal.innerHTML = `
+            <div class="image-upload-content">
+                <div class="image-upload-header">
+                    <h3>Завантаження зображення</h3>
+                    <p>Стовпець: <strong>${columnTitle}</strong></p>
+                    <button type="button" class="close-modal">&times;</button>
+                </div>
+                
+                <div class="image-upload-body">
+                    <div class="upload-zone" id="upload-zone">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">
+                            <p><strong>Перетягніть зображення сюди</strong></p>
+                            <p>або <button type="button" class="btn-browse">Оберіть файл</button></p>
+                        </div>
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div class="upload-info">
+                        <h4>Важливо:</h4>
+                        <ul>
+                            <li>✅ Зображення буде автоматично конвертовано в JPG</li>
+                            <li>✅ Розмір буде змінено до 1000x1000 пікселів</li>
+                            <li>✅ Стара фотографія буде автоматично видалена</li>
+                            <li>✅ Підтримувані формати: JPG, PNG, GIF, WebP, BMP</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="upload-progress" id="upload-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <p id="progress-text">Завантаження...</p>
+                    </div>
+                </div>
+                
+                <div class="image-upload-footer">
+                    <button type="button" class="btn btn-secondary cancel-btn">Скасувати</button>
+                </div>
+            </div>
+        `;
+        
+        // Bind events
+        this.bindImageUploadEvents(modal, catalogId, itemId, column, cell);
+        
+        return modal;
+    }
+    
+    /**
+     * Bind events for image upload modal
+     */
+    bindImageUploadEvents(modal, catalogId, itemId, column, cell) {
+        const fileInput = modal.querySelector('#file-input');
+        const uploadZone = modal.querySelector('#upload-zone');
+        const browseBtn = modal.querySelector('.btn-browse');
+        const closeBtn = modal.querySelector('.close-modal');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        
+        // Close events
+        closeBtn.addEventListener('click', () => modal.remove());
+        cancelBtn.addEventListener('click', () => modal.remove());
+        
+        // Browse button
+        browseBtn.addEventListener('click', () => fileInput.click());
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                this.handleImageUpload(files[0], catalogId, itemId, column, cell, modal);
+            }
+        });
+        
+        // Drag and drop events
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+        
+        uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            // Only remove drag-over if we're leaving the upload zone entirely
+            if (!uploadZone.contains(e.relatedTarget)) {
+                uploadZone.classList.remove('drag-over');
+            }
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                // Check if it's an image
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    this.handleImageUpload(file, catalogId, itemId, column, cell, modal);
+                } else {
+                    alert('Будь ласка, оберіть файл зображення');
+                }
+            }
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+    
+    /**
+     * Handle image upload
+     */
+    async handleImageUpload(file, catalogId, itemId, column, cell, modal) {
+        console.log('🖼️ Starting image upload:', {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+        });
+        
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+            alert('Будь ласка, оберіть файл зображення');
+            return;
+        }
+        
+        // Check file size (max 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('Файл занадто великий. Максимальний розмір: 50MB');
+            return;
+        }
+        
+        // Show progress
+        const progressDiv = modal.querySelector('#upload-progress');
+        const progressFill = modal.querySelector('#progress-fill');
+        const progressText = modal.querySelector('#progress-text');
+        const uploadZone = modal.querySelector('#upload-zone');
+        
+        uploadZone.style.display = 'none';
+        progressDiv.style.display = 'block';
+        progressText.textContent = 'Завантаження та обробка зображення...';
+        
+        // Animate progress bar (fake progress for user feedback)
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            progressFill.style.width = progress + '%';
+        }, 200);
+        
+        try {
+            const result = await this.api.uploadImage(catalogId, itemId, column, file);
+            
+            // Complete progress
+            clearInterval(progressInterval);
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Успішно завантажено!';
+            
+            // Update table cell with new image
+            this.updateImageCell(cell, result.image_url, column);
+            
+            // Update local data
+            const dataItem = this.data.find(item => item.id == itemId);
+            if (dataItem) {
+                dataItem[column] = result.image_url;
+            }
+            
+            console.log('✅ Image uploaded successfully:', result);
+            
+            // Close modal after short delay
+            setTimeout(() => {
+                modal.remove();
+            }, 1000);
+            
+        } catch (error) {
+            clearInterval(progressInterval);
+            
+            // Show error
+            progressText.textContent = 'Помилка: ' + error.message;
+            progressFill.style.width = '0%';
+            progressFill.style.backgroundColor = '#dc3545';
+            
+            console.error('❌ Image upload failed:', error);
+            
+            // Show upload zone again after delay
+            setTimeout(() => {
+                uploadZone.style.display = 'block';
+                progressDiv.style.display = 'none';
+                progressFill.style.backgroundColor = '#007cba';
+            }, 3000);
+        }
+    }
+    
+    /**
+     * Update image cell with new image URL
+     */
+    updateImageCell(cell, imageUrl, column) {
+        const columnConfig = this.allColumns.find(col => col.key === column);
+        if (columnConfig && columnConfig.type === 'image') {
+            if (imageUrl) {
+                cell.innerHTML = `<img src="${imageUrl}" alt="Image" class="table-image" onerror="this.style.display='none'">`;
+            } else {
+                cell.innerHTML = '';
+            }
+            
+            // Add visual feedback
+            cell.classList.add('updated');
+            setTimeout(() => {
+                cell.classList.remove('updated');
+            }, 2000);
+        }
+    }
+    
+    /**
      * Cleanup
      */
     destroy() {
         if (this.tableContainer) {
             this.tableContainer.remove();
         }
+        
+        // Remove any open modals
+        const imageModal = document.getElementById('image-upload-modal');
+        if (imageModal) {
+            imageModal.remove();
+        }
+        
         console.log('📊 Modern Table Manager destroyed');
     }
 } 

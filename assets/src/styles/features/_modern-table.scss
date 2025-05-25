@@ -404,12 +404,6 @@
     font-size: 16px;
     transition: background-color 0.2s;
     
-    &.btn-edit {
-      &:hover {
-        background: rgba($wp-success, 0.1);
-      }
-    }
-    
     &.btn-delete {
       &:hover {
         background: rgba($wp-danger, 0.1);

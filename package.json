@@ -1,6 +1,6 @@
 {
   "name": "catalog-master",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "WordPress plugin for managing product catalogs with Google Sheets integration",
   "type": "module",
   "scripts": {

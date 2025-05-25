@@ -316,47 +316,564 @@ class CatalogMaster_Admin {
     
     public function admin_page_add_catalog() {
         ?>
-        <div class="wrap">
-            <h1>Додати новий каталог</h1>
+        <div class="wrap catalog-master-admin">
+            <div class="add-catalog-header">
+                <h1>🆕 Створення нового каталогу</h1>
+                <p class="add-catalog-subtitle">Створіть новий каталог для управління товарами з Google Sheets</p>
+            </div>
             
-            <form method="post" action="">
+            <!-- Progress Steps -->
+            <div class="creation-progress">
+                <div class="progress-step active">
+                    <div class="step-number">1</div>
+                    <div class="step-info">
+                        <div class="step-title">Основна інформація</div>
+                        <div class="step-description">Назва та опис каталогу</div>
+                    </div>
+                </div>
+                <div class="progress-separator"></div>
+                <div class="progress-step">
+                    <div class="step-number">2</div>
+                    <div class="step-info">
+                        <div class="step-title">Підключення даних</div>
+                        <div class="step-description">Google Sheets та налаштування</div>
+                    </div>
+                </div>
+                <div class="progress-separator"></div>
+                <div class="progress-step">
+                    <div class="step-number">3</div>
+                    <div class="step-info">
+                        <div class="step-title">Готово</div>
+                        <div class="step-description">Каталог створено</div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" action="" id="create-catalog-form" class="create-catalog-form">
                 <?php wp_nonce_field('catalog_master_create'); ?>
                 <input type="hidden" name="action" value="create_catalog">
                 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="name">Назва каталогу *</label></th>
-                        <td>
-                            <input type="text" id="name" name="name" class="regular-text" required>
-                            <p class="description">Введіть назву каталогу</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="description">Опис</label></th>
-                        <td>
-                            <textarea id="description" name="description" rows="4" class="large-text"></textarea>
-                            <p class="description">Опис каталогу (не обов'язково)</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="google_sheet_url">URL Google Sheets</label></th>
-                        <td>
-                            <input type="url" id="google_sheet_url" name="google_sheet_url" class="large-text">
-                            <p class="description">Вставте звичайне посилання на Google Sheets таблицю (плагін автоматично конвертує його в XLSX формат)</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="sheet_name">Назва аркуша</label></th>
-                        <td>
-                            <input type="text" id="sheet_name" name="sheet_name" class="regular-text" value="Sheet1">
-                            <p class="description">Назва аркуша в Google Sheets (за замовчуванням: Sheet1)</p>
-                        </td>
-                    </tr>
-                </table>
-                
-                <?php submit_button('Створити каталог'); ?>
+                <!-- Basic Information Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header">
+                        <h3>📝 Основна інформація</h3>
+                        <p class="settings-section-description">Введіть назву та опис вашого каталогу для зручної ідентифікації</p>
+                    </div>
+                    
+                    <div class="settings-fields-grid">
+                        <div class="settings-field-group">
+                            <label for="name" class="settings-field-label">
+                                Назва каталогу <span class="label-required">*</span>
+                            </label>
+                            <div class="settings-field-wrapper">
+                                <input type="text" 
+                                       id="name" 
+                                       name="name" 
+                                       class="settings-field-input" 
+                                       required
+                                       placeholder="Наприклад: Каталог продуктів 2025"
+                                       autocomplete="off">
+                                <div class="field-hint">
+                                    💡 Використовуйте зрозумілу назву, яка допоможе відрізнити цей каталог від інших
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-field-group full-width">
+                            <label for="description" class="settings-field-label">
+                                Опис каталогу
+                            </label>
+                            <div class="settings-field-wrapper">
+                                <textarea id="description" 
+                                          name="description" 
+                                          class="settings-field-textarea" 
+                                          rows="3"
+                                          placeholder="Детальний опис каталогу, його призначення та особливості (необов'язково)"></textarea>
+                                <div class="field-hint">
+                                    📄 Опис допоможе вам та іншим користувачам зрозуміти призначення каталогу
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Sheets Connection Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header">
+                        <h3>🔗 Підключення до Google Sheets</h3>
+                        <p class="settings-section-description">Налаштуйте джерело даних для автоматичного імпорту товарів</p>
+                    </div>
+                    
+                    <!-- Google Sheets Instructions -->
+                    <div class="google-sheets-instructions">
+                        <div class="instruction-item">
+                            <div class="instruction-icon">1️⃣</div>
+                            <div class="instruction-content">
+                                <strong>Підготуйте Google Sheets:</strong> Переконайтеся, що ваша таблиця містить заголовки стовпців у першому рядку
+                            </div>
+                        </div>
+                        <div class="instruction-item">
+                            <div class="instruction-icon">2️⃣</div>
+                            <div class="instruction-content">
+                                <strong>Налаштуйте доступ:</strong> Зробіть таблицю доступною за посиланням (File → Share → Anyone with the link can view)
+                            </div>
+                        </div>
+                        <div class="instruction-item">
+                            <div class="instruction-icon">3️⃣</div>
+                            <div class="instruction-content">
+                                <strong>Скопіюйте URL:</strong> Вставте звичайне посилання на Google Sheets - плагін автоматично його оброби
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-fields-grid">
+                        <div class="settings-field-group full-width">
+                            <label for="google_sheet_url" class="settings-field-label">
+                                URL Google Sheets
+                            </label>
+                            <div class="settings-field-wrapper">
+                                <div class="settings-field-with-button">
+                                    <input type="url" 
+                                           id="google_sheet_url" 
+                                           name="google_sheet_url" 
+                                           class="settings-field-input" 
+                                           placeholder="https://docs.google.com/spreadsheets/d/1ABC...xyz/edit">
+                                    <button type="button" 
+                                            id="test-sheets-connection-create" 
+                                            class="button button-secondary settings-test-btn"
+                                            disabled>
+                                        🔍 Перевірити
+                                    </button>
+                                </div>
+                                <div class="field-hint">
+                                    🔗 Вставте посилання на вашу Google Sheets таблицю. Плагін автоматично конвертує його в XLSX формат
+                                </div>
+                                <div id="connection-test-result-create" class="connection-status-message" style="display: none;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-field-group">
+                            <label for="sheet_name" class="settings-field-label">
+                                Назва аркуша
+                            </label>
+                            <div class="settings-field-wrapper">
+                                <input type="text" 
+                                       id="sheet_name" 
+                                       name="sheet_name" 
+                                       class="settings-field-input" 
+                                       value="Sheet1"
+                                       placeholder="Sheet1">
+                                <div class="field-hint">
+                                    📋 За замовчуванням: "Sheet1". Змініть, якщо ваші дані знаходяться на іншому аркуші
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Connection Status Preview -->
+                    <div class="connection-preview" id="connection-preview" style="display: none;">
+                        <h4>📊 Попередній перегляд даних</h4>
+                        <div class="preview-content" id="preview-content">
+                            <!-- Буде заповнено через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Steps Information -->
+                <div class="settings-section">
+                    <div class="settings-section-header">
+                        <h3>🚀 Що буде далі?</h3>
+                        <p class="settings-section-description">Після створення каталогу ви зможете налаштувати детальні параметри</p>
+                    </div>
+                    
+                    <div class="next-steps-grid">
+                        <div class="next-step-item">
+                            <div class="next-step-icon">🔄</div>
+                            <div class="next-step-content">
+                                <h4>Налаштування відповідності стовпців</h4>
+                                <p>Ви зможете встановити відповідність між стовпцями Google Sheets та полями каталогу</p>
+                            </div>
+                        </div>
+                        <div class="next-step-item">
+                            <div class="next-step-icon">📥</div>
+                            <div class="next-step-content">
+                                <h4>Імпорт даних</h4>
+                                <p>Автоматичне завантаження та обробка даних з вашої Google Sheets таблиці</p>
+                            </div>
+                        </div>
+                        <div class="next-step-item">
+                            <div class="next-step-icon">🎨</div>
+                            <div class="next-step-content">
+                                <h4>Обробка зображень</h4>
+                                <p>Зображення будуть автоматично завантажені та оптимізовані до розміру 1000x1000px</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="settings-actions">
+                    <div class="settings-actions-primary">
+                        <button type="submit" class="button button-primary button-large settings-save-btn" id="create-catalog-btn">
+                            ✨ Створити каталог
+                        </button>
+                    </div>
+                    
+                    <div class="settings-actions-secondary">
+                        <a href="<?php echo admin_url('admin.php?page=catalog-master'); ?>" 
+                           class="button button-secondary">
+                            ← Повернутися до списку
+                        </a>
+                        
+                        <button type="button" 
+                                class="button button-secondary" 
+                                id="save-draft-btn"
+                                style="display: none;">
+                            💾 Зберегти як чернетку
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
+        
+        <!-- Additional JavaScript for enhanced UX -->
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('google_sheet_url');
+            const testBtn = document.getElementById('test-sheets-connection-create');
+            const previewDiv = document.getElementById('connection-preview');
+            const previewContent = document.getElementById('preview-content');
+            const resultDiv = document.getElementById('connection-test-result-create');
+            
+            // Enable test button when URL is entered
+            urlInput.addEventListener('input', function() {
+                testBtn.disabled = !this.value.trim();
+            });
+            
+            // Test connection functionality
+            testBtn.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                const sheetName = document.getElementById('sheet_name').value.trim() || 'Sheet1';
+                
+                if (!url) return;
+                
+                testBtn.disabled = true;
+                testBtn.textContent = '⏳ Перевіряємо...';
+                resultDiv.style.display = 'none';
+                previewDiv.style.display = 'none';
+                
+                const formData = new FormData();
+                formData.append('action', 'catalog_master_test_sheets_connection');
+                formData.append('sheet_url', url);
+                formData.append('sheet_name', sheetName);
+                formData.append('nonce', catalog_master_vite_params.nonce);
+                
+                fetch(catalog_master_vite_params.ajax_url, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    testBtn.disabled = false;
+                    testBtn.textContent = '🔍 Перевірити';
+                    
+                    if (data.success) {
+                        resultDiv.className = 'connection-status-message success';
+                        resultDiv.innerHTML = `
+                            <div class="status-icon">✅</div>
+                            <div class="status-content">
+                                <strong>Підключення успішне!</strong><br>
+                                Знайдено ${data.data.row_count} рядків з ${data.data.headers.length} стовпцями
+                            </div>
+                        `;
+                        
+                        // Show preview
+                        previewContent.innerHTML = `
+                            <div class="preview-stats">
+                                <span class="preview-stat">📊 Рядків: ${data.data.row_count}</span>
+                                <span class="preview-stat">📋 Стовпців: ${data.data.headers.length}</span>
+                            </div>
+                            <div class="preview-headers">
+                                <strong>Заголовки стовпців:</strong>
+                                ${data.data.headers.map(header => `<span class="header-tag">${header}</span>`).join('')}
+                            </div>
+                        `;
+                        previewDiv.style.display = 'block';
+                        
+                    } else {
+                        resultDiv.className = 'connection-status-message error';
+                        resultDiv.innerHTML = `
+                            <div class="status-icon">❌</div>
+                            <div class="status-content">
+                                <strong>Помилка підключення</strong><br>
+                                ${data.data || 'Невідома помилка'}
+                            </div>
+                        `;
+                    }
+                    
+                    resultDiv.style.display = 'block';
+                })
+                .catch(error => {
+                    testBtn.disabled = false;
+                    testBtn.textContent = '🔍 Перевірити';
+                    
+                    resultDiv.className = 'connection-status-message error';
+                    resultDiv.innerHTML = `
+                        <div class="status-icon">❌</div>
+                        <div class="status-content">
+                            <strong>Помилка мережі</strong><br>
+                            Перевірте інтернет-з'єднання
+                        </div>
+                    `;
+                    resultDiv.style.display = 'block';
+                });
+            });
+        });
+        </script>
+        
+        <style>
+        /* Modern Create Catalog Styles */
+        .add-catalog-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+        
+        .add-catalog-header h1 {
+            font-size: 2.2em;
+            margin: 0 0 10px 0;
+            color: #1d2327;
+        }
+        
+        .add-catalog-subtitle {
+            font-size: 1.1em;
+            color: #646970;
+            margin: 0;
+        }
+        
+        /* Progress Steps */
+        .creation-progress {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0 40px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        
+        .progress-step.active {
+            opacity: 1;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #0073aa;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .progress-step:not(.active) .step-number {
+            background: #c3c4c7;
+        }
+        
+        .step-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1d2327;
+        }
+        
+        .step-description {
+            font-size: 12px;
+            color: #646970;
+        }
+        
+        .progress-separator {
+            width: 60px;
+            height: 2px;
+            background: #c3c4c7;
+            margin: 0 20px;
+        }
+        
+        /* Google Sheets Instructions */
+        .google-sheets-instructions {
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .instruction-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .instruction-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        
+        .instruction-content {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* Connection Preview */
+        .connection-preview {
+            background: #e7f7ff;
+            border: 1px solid #00a0d2;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .preview-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .preview-stat {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #c3c4c7;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .preview-headers {
+            font-size: 14px;
+        }
+        
+        .header-tag {
+            display: inline-block;
+            background: #0073aa;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px 4px 2px 0;
+        }
+        
+        /* Next Steps */
+        .next-steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .next-step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 20px;
+            background: #f6f7f7;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .next-step-icon {
+            font-size: 24px;
+            line-height: 1;
+        }
+        
+        .next-step-content h4 {
+            margin: 0 0 8px 0;
+            font-size: 15px;
+            color: #1d2327;
+        }
+        
+        .next-step-content p {
+            margin: 0;
+            font-size: 13px;
+            color: #646970;
+            line-height: 1.4;
+        }
+        
+        /* Connection Status Messages */
+        .connection-status-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .connection-status-message.success {
+            background: #e6ffed;
+            border: 1px solid #00a32a;
+            color: #00a32a;
+        }
+        
+        .connection-status-message.error {
+            background: #ffebee;
+            border: 1px solid #d63638;
+            color: #d63638;
+        }
+        
+        .status-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+        
+        .status-content {
+            flex: 1;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .creation-progress {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .progress-separator {
+                width: 2px;
+                height: 30px;
+                margin: 0;
+            }
+            
+            .next-steps-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        </style>
         <?php
     }
     
@@ -957,8 +1474,20 @@ class CatalogMaster_Admin {
                 </div>
             </div>
             
+            <!-- Image Processing Diagnostics -->
             <div class="catalog-master-card">
-                <h3>Тестування</h3>
+                <h3>🖼️ Діагностика обробки зображень</h3>
+                <?php $this->render_image_diagnostics(); ?>
+            </div>
+            
+            <!-- Image Upload Testing -->
+            <div class="catalog-master-card">
+                <h3>🧪 Тестування завантаження зображень</h3>
+                <?php $this->render_image_upload_test(); ?>
+            </div>
+            
+            <div class="catalog-master-card">
+                <h3>Тестування системи</h3>
                 <p>Спробуйте створити каталог зараз, щоб побачити детальні логи процесу.</p>
                 <a href="<?php echo admin_url('admin.php?page=catalog-master-add'); ?>" class="button button-primary">Створити тестовий каталог</a>
             </div>
@@ -1064,6 +1593,456 @@ class CatalogMaster_Admin {
         } else {
             return round($size);
         }
+    }
+    
+    /**
+     * Render image processing diagnostics
+     */
+    private function render_image_diagnostics() {
+        ?>
+        <div class="diagnostics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4>📊 Інформація про сервер</h4>
+                <table class="form-table">
+                    <tr>
+                        <th>Версія PHP:</th>
+                        <td><strong><?php echo PHP_VERSION; ?></strong></td>
+                    </tr>
+                    <tr>
+                        <th>Операційна система:</th>
+                        <td><code><?php echo php_uname('s') . ' ' . php_uname('r'); ?></code></td>
+                    </tr>
+                    <tr>
+                        <th>Memory Limit:</th>
+                        <td><strong><?php echo ini_get('memory_limit'); ?></strong></td>
+                    </tr>
+                    <tr>
+                        <th>Max Execution Time:</th>
+                        <td><strong><?php echo ini_get('max_execution_time'); ?> секунд</strong></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div>
+                <h4>📦 Розширення для зображень</h4>
+                <table class="form-table">
+                    <tr>
+                        <th>GD Extension:</th>
+                        <td>
+                            <?php if (extension_loaded('gd')): ?>
+                                <strong style="color: green;">✅ Встановлено</strong>
+                                <?php 
+                                $gd_info = gd_info();
+                                if ($gd_info && is_array($gd_info) && isset($gd_info['GD Version'])) {
+                                    echo '<br><small>Версія: ' . $gd_info['GD Version'] . '</small>';
+                                }
+                                ?>
+                            <?php else: ?>
+                                <strong style="color: red;">❌ НЕ встановлено</strong>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ImageMagick Extension:</th>
+                        <td>
+                            <?php if (extension_loaded('imagick')): ?>
+                                <strong style="color: green;">✅ Встановлено</strong>
+                                <?php if (class_exists('Imagick')): ?>
+                                    <?php 
+                                    try {
+                                        $imagick = new Imagick();
+                                        $version = $imagick->getVersion();
+                                        if (is_array($version) && isset($version['versionString'])) {
+                                            echo '<br><small>' . $version['versionString'] . '</small>';
+                                        }
+                                        $imagick->destroy();
+                                    } catch (Exception $e) {
+                                        echo '<br><small>Помилка отримання версії</small>';
+                                    }
+                                    ?>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <strong style="color: orange;">⚠️ НЕ встановлено</strong>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Підтримувані формати:</th>
+                        <td>
+                            <?php
+                            $formats = array();
+                            if (extension_loaded('gd')) {
+                                $gd_info = gd_info();
+                                if ($gd_info && is_array($gd_info)) {
+                                    if (isset($gd_info['JPEG Support']) && $gd_info['JPEG Support']) $formats[] = 'JPEG';
+                                    if (isset($gd_info['PNG Support']) && $gd_info['PNG Support']) $formats[] = 'PNG';
+                                    if (isset($gd_info['GIF Create Support']) && $gd_info['GIF Create Support']) $formats[] = 'GIF';
+                                    if (isset($gd_info['WebP Support']) && $gd_info['WebP Support']) $formats[] = 'WebP';
+                                    if (isset($gd_info['AVIF Support']) && $gd_info['AVIF Support']) $formats[] = 'AVIF';
+                                }
+                            }
+                            echo implode(', ', $formats);
+                            ?>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <h4>🧪 Тестування створення зображень</h4>
+        <div class="diagnostics-tests">
+            <?php
+            // Test GD image creation
+            if (extension_loaded('gd')) {
+                echo '<div class="test-result">';
+                echo '<strong>GD тест:</strong> ';
+                try {
+                    $test_image = imagecreate(10, 10);
+                    $bg_color = imagecolorallocate($test_image, 255, 255, 255);
+                    
+                    ob_start();
+                    imagejpeg($test_image, null, 90);
+                    $jpeg_data = ob_get_contents();
+                    ob_end_clean();
+                    imagedestroy($test_image);
+                    
+                    if ($jpeg_data !== false && strlen($jpeg_data) > 0) {
+                        echo '<span style="color: green;">✅ Створення JPEG працює (' . strlen($jpeg_data) . ' байт)</span>';
+                    } else {
+                        echo '<span style="color: red;">❌ НЕ може створити JPEG</span>';
+                    }
+                } catch (Exception $e) {
+                    echo '<span style="color: red;">❌ Помилка: ' . esc_html($e->getMessage()) . '</span>';
+                }
+                echo '</div>';
+            }
+            
+            // Test ImageMagick image creation
+            if (extension_loaded('imagick') && class_exists('Imagick')) {
+                echo '<div class="test-result">';
+                echo '<strong>ImageMagick тест:</strong> ';
+                try {
+                    $imagick = new Imagick();
+                    $imagick->newImage(10, 10, 'white');
+                    $imagick->setImageFormat('jpeg');
+                    $imagick->setImageCompressionQuality(90);
+                    
+                    $jpeg_blob = $imagick->getImageBlob();
+                    $imagick->destroy();
+                    
+                    if ($jpeg_blob !== false && strlen($jpeg_blob) > 0) {
+                        echo '<span style="color: green;">✅ Створення JPEG працює (' . strlen($jpeg_blob) . ' байт)</span>';
+                    } else {
+                        echo '<span style="color: red;">❌ НЕ може створити JPEG</span>';
+                    }
+                } catch (Exception $e) {
+                    echo '<span style="color: red;">❌ Помилка: ' . esc_html($e->getMessage()) . '</span>';
+                }
+                echo '</div>';
+            }
+            
+            // Test WordPress Image Editor
+            echo '<div class="test-result">';
+            echo '<strong>WordPress Image Editor тест:</strong> ';
+            $available_editors = wp_image_editor_supports();
+            if (!empty($available_editors) && is_array($available_editors)) {
+                echo '<span style="color: green;">✅ Доступні редактори: ' . implode(', ', array_keys($available_editors)) . '</span>';
+            } else {
+                echo '<span style="color: red;">❌ Немає доступних редакторів</span>';
+                if ($available_editors !== false && !is_array($available_editors)) {
+                    echo '<br><small>Неочікуваний тип даних: ' . gettype($available_editors) . '</small>';
+                }
+            }
+            echo '</div>';
+            ?>
+        </div>
+        
+        <h4>🏁 Висновок</h4>
+        <?php
+        $can_process_images = extension_loaded('gd') || extension_loaded('imagick');
+        
+        if ($can_process_images):
+            ?>
+            <div class="notice notice-success inline">
+                <p><strong>✅ Сервер повністю підтримує обробку зображень!</strong></p>
+                <?php if (extension_loaded('gd') && extension_loaded('imagick')): ?>
+                    <p>🎉 Доступні обидва редактори (GD та ImageMagick)</p>
+                <?php elseif (extension_loaded('gd')): ?>
+                    <p>📷 Доступний GD редактор</p>
+                <?php else: ?>
+                    <p>🎨 Доступний ImageMagick редактор</p>
+                <?php endif; ?>
+                <p><strong>Рекомендація:</strong> Якщо є проблеми з завантаженням зображень, перевірте логи WordPress та права доступу до папок.</p>
+            </div>
+        <?php else: ?>
+            <div class="notice notice-error inline">
+                <p><strong>❌ Сервер НЕ підтримує обробку зображень!</strong></p>
+                <p>Зверніться до хостинг-провайдера для встановлення GD або ImageMagick розширень.</p>
+            </div>
+        <?php endif; ?>
+        
+        <style>
+        .diagnostics-grid {
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-left: 4px solid #ddd;
+            border-radius: 0 4px 4px 0;
+        }
+        .diagnostics-tests {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        </style>
+        <?php
+    }
+    
+    /**
+     * Render image upload testing
+     */
+    private function render_image_upload_test() {
+        // Handle test upload
+        if (isset($_POST['test_image_upload']) && isset($_FILES['test_image'])) {
+            $this->handle_test_image_upload();
+        }
+        ?>
+        
+        <p>Завантажте зображення для тестування всього процесу обробки, який використовується в плагіні:</p>
+        
+        <form method="post" enctype="multipart/form-data" style="margin-bottom: 20px;">
+            <?php wp_nonce_field('catalog_master_debug_image', 'debug_image_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th><label for="test_image">Оберіть зображення:</label></th>
+                    <td>
+                        <input type="file" name="test_image" id="test_image" accept="image/*" required>
+                        <p class="description">Підтримувані формати: JPG, PNG, GIF, WebP, BMP, AVIF</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th></th>
+                    <td>
+                        <button type="submit" name="test_image_upload" class="button button-primary">
+                            🚀 Тестувати завантаження та обробку
+                        </button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        
+        <div class="test-info">
+            <h4>🔍 Що буде протестовано:</h4>
+            <ul>
+                <li>✅ Завантаження файлу через $_FILES</li>
+                <li>✅ Перевірка існування та читання тимчасового файлу</li>
+                <li>✅ Функція getimagesize() для аналізу зображення</li>
+                <li>✅ WordPress Image Editor (wp_get_image_editor)</li>
+                <li>✅ **Примусова** зміна розміру до 100x100 пікселів (тест; в реальній роботі - 1000x1000)</li>
+                <li>✅ Збереження в форматі JPEG з якістю 90%</li>
+                <li>✅ Перевірка прав доступу до папки uploads</li>
+            </ul>
+            
+            <div class="notice notice-info inline">
+                <p><strong>💡 Порада:</strong> Якщо тест пройде успішно, але завантаження в таблиці не працює, проблема може бути в:</p>
+                <ul>
+                    <li>• Правах доступу до конкретної папки каталогу</li>
+                    <li>• Налаштуваннях безпеки WordPress</li>
+                    <li>• Конфліктах з іншими плагінами</li>
+                </ul>
+            </div>
+        </div>
+        
+        <style>
+        .test-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .test-info ul {
+            margin: 10px 0;
+        }
+        .test-info li {
+            margin: 5px 0;
+        }
+        </style>
+        <?php
+    }
+    
+    /**
+     * Handle test image upload
+     */
+    private function handle_test_image_upload() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['debug_image_nonce'], 'catalog_master_debug_image')) {
+            echo '<div class="notice notice-error"><p>❌ Помилка безпеки. Спробуйте ще раз.</p></div>';
+            return;
+        }
+        
+        $file = $_FILES['test_image'];
+        
+        echo '<div class="test-results" style="background: #f1f1f1; padding: 20px; border-radius: 4px; margin: 20px 0;">';
+        echo '<h4>📊 Результати тестування</h4>';
+        
+        // Step 1: Basic file info
+        echo '<div class="test-step">';
+        echo '<h5>1️⃣ Інформація про файл</h5>';
+        echo '<ul>';
+        echo '<li><strong>Назва:</strong> ' . esc_html($file['name']) . '</li>';
+        echo '<li><strong>Розмір:</strong> ' . number_format($file['size']) . ' байт (' . number_format($file['size']/1024, 1) . ' KB)</li>';
+        echo '<li><strong>MIME тип:</strong> ' . esc_html($file['type']) . '</li>';
+        echo '<li><strong>Тимчасовий файл:</strong> ' . esc_html($file['tmp_name']) . '</li>';
+        echo '<li><strong>Помилка завантаження:</strong> ' . ($file['error'] === UPLOAD_ERR_OK ? 'Немає ✅' : 'Код ' . $file['error'] . ' ❌') . '</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo '<div class="notice notice-error inline"><p>❌ Файл не завантажився правильно.</p></div>';
+            echo '</div>';
+            return;
+        }
+        
+        // Step 2: File existence and readability
+        echo '<div class="test-step">';
+        echo '<h5>2️⃣ Тест доступу до файлу</h5>';
+        $file_exists = file_exists($file['tmp_name']);
+        $file_readable = is_readable($file['tmp_name']);
+        $file_size = $file_exists ? filesize($file['tmp_name']) : 0;
+        
+        echo '<ul>';
+        echo '<li><strong>Файл існує:</strong> ' . ($file_exists ? 'Так ✅' : 'Ні ❌') . '</li>';
+        echo '<li><strong>Файл читається:</strong> ' . ($file_readable ? 'Так ✅' : 'Ні ❌') . '</li>';
+        echo '<li><strong>Розмір файлу:</strong> ' . number_format($file_size) . ' байт</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        if (!$file_exists || !$file_readable) {
+            echo '<div class="notice notice-error inline"><p>❌ Проблеми з доступом до файлу.</p></div>';
+            echo '</div>';
+            return;
+        }
+        
+        // Step 3: getimagesize test
+        echo '<div class="test-step">';
+        echo '<h5>3️⃣ Тест getimagesize()</h5>';
+        $image_info = getimagesize($file['tmp_name']);
+        
+        if ($image_info !== false) {
+            echo '<p style="color: green;">✅ <strong>Успішно!</strong></p>';
+            echo '<ul>';
+            echo '<li><strong>Ширина:</strong> ' . $image_info[0] . ' px</li>';
+            echo '<li><strong>Висота:</strong> ' . $image_info[1] . ' px</li>';
+            echo '<li><strong>MIME тип:</strong> ' . $image_info['mime'] . '</li>';
+            if (isset($image_info['channels'])) {
+                echo '<li><strong>Канали:</strong> ' . $image_info['channels'] . '</li>';
+            }
+            echo '</ul>';
+        } else {
+            echo '<p style="color: red;">❌ <strong>НЕ вдалося визначити розмір зображення</strong></p>';
+            $mime_type = function_exists('mime_content_type') ? mime_content_type($file['tmp_name']) : 'невідомий';
+            echo '<p>MIME тип з mime_content_type(): ' . $mime_type . '</p>';
+        }
+        echo '</div>';
+        
+        // Step 4: WordPress Image Editor test
+        echo '<div class="test-step">';
+        echo '<h5>4️⃣ Тест WordPress Image Editor</h5>';
+        
+        $image_editor = wp_get_image_editor($file['tmp_name']);
+        
+        if (is_wp_error($image_editor)) {
+            echo '<p style="color: red;">❌ <strong>wp_get_image_editor():</strong> ' . $image_editor->get_error_message() . '</p>';
+        } else {
+            echo '<p style="color: green;">✅ <strong>wp_get_image_editor():</strong> Успішно створено</p>';
+            
+            // Get image size
+            $size = $image_editor->get_size();
+            echo '<p><strong>Розмір з редактора:</strong> ' . $size['width'] . 'x' . $size['height'] . '</p>';
+            
+            // Test resize (always resize to test dimensions, regardless of current size)
+            echo '<p><strong>Тест зміни розміру:</strong> ' . $size['width'] . 'x' . $size['height'] . ' → 100x100 (тестовий розмір; в каталозі буде 1000x1000)</p>';
+            $resized = $image_editor->resize(100, 100, true);
+            if (is_wp_error($resized)) {
+                echo '<p style="color: red;">❌ <strong>Зміна розміру:</strong> ' . $resized->get_error_message() . '</p>';
+            } else {
+                echo '<p style="color: green;">✅ <strong>Зміна розміру:</strong> Успішно (завжди ресайзимо незалежно від початкового розміру)</p>';
+                
+                // Test save
+                $upload_dir = wp_upload_dir();
+                $temp_path = $upload_dir['basedir'] . '/test_image_' . time() . '.jpg';
+                $saved = $image_editor->save($temp_path, 'image/jpeg');
+                
+                if (is_wp_error($saved)) {
+                    echo '<p style="color: red;">❌ <strong>Збереження:</strong> ' . $saved->get_error_message() . '</p>';
+                } else {
+                    echo '<p style="color: green;">✅ <strong>Збереження:</strong> Успішно (' . number_format(filesize($saved['path'])) . ' байт)</p>';
+                    
+                    // Show image if saved successfully
+                    $temp_url = $upload_dir['baseurl'] . '/' . basename($saved['path']);
+                    echo '<p><img src="' . esc_url($temp_url) . '" style="max-width: 100px; border: 1px solid #ddd;" alt="Test Image"></p>';
+                    
+                    // Clean up test file after a delay (via JavaScript)
+                    echo '<script>setTimeout(function() { 
+                        fetch("' . admin_url('admin-ajax.php') . '", {
+                            method: "POST",
+                            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                            body: "action=catalog_master_cleanup_test_image&path=' . urlencode($saved['path']) . '&nonce=' . wp_create_nonce('cleanup_test_image') . '"
+                        });
+                    }, 5000);</script>';
+                }
+            }
+        }
+        echo '</div>';
+        
+        // Step 5: Upload directory test
+        echo '<div class="test-step">';
+        echo '<h5>5️⃣ Тест папки завантажень</h5>';
+        $upload_dir = wp_upload_dir();
+        $writable = is_writable($upload_dir['basedir']);
+        
+        echo '<ul>';
+        echo '<li><strong>Папка:</strong> ' . $upload_dir['basedir'] . '</li>';
+        echo '<li><strong>URL:</strong> ' . $upload_dir['baseurl'] . '</li>';
+        echo '<li><strong>Доступна для запису:</strong> ' . ($writable ? 'Так ✅' : 'Ні ❌') . '</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        // Overall conclusion
+        $all_tests_passed = $image_info !== false && !is_wp_error($image_editor) && $writable;
+        
+        echo '<div class="test-conclusion">';
+        if ($all_tests_passed) {
+            echo '<div class="notice notice-success inline">';
+            echo '<p><strong>🎉 Всі тести пройшли успішно!</strong></p>';
+            echo '<p>Ваш сервер повністю підтримує обробку зображень. Якщо в плагіні є проблеми, вони можуть бути пов\'язані з:</p>';
+            echo '<ul>';
+            echo '<li>• Правами доступу до конкретних папок каталогу</li>';
+            echo '<li>• Налаштуваннями безпеки WordPress</li>';
+            echo '<li>• Особливостями конкретних файлів зображень</li>';
+            echo '</ul>';
+            echo '</div>';
+        } else {
+            echo '<div class="notice notice-error inline">';
+            echo '<p><strong>❌ Виявлено проблеми з обробкою зображень</strong></p>';
+            echo '<p>Перевірте вищенаведені результати та зверніться до адміністратора сервера.</p>';
+            echo '</div>';
+        }
+        echo '</div>';
+        
+        echo '</div>'; // .test-results
+        
+        echo '<style>';
+        echo '.test-step { margin: 15px 0; padding: 10px; background: white; border-radius: 4px; border: 1px solid #ddd; }';
+        echo '.test-step h5 { margin: 0 0 10px 0; color: #0073aa; }';
+        echo '.test-step ul { margin: 5px 0; }';
+        echo '.test-step li { margin: 3px 0; }';
+        echo '.test-conclusion { margin-top: 20px; }';
+        echo '</style>';
     }
 }
 

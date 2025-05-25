@@ -1,0 +1,343 @@
+/* Image Upload Modal Styles */
+@use "sass:color";
+
+.image-upload-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10001; // Higher than column settings modal
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .image-upload-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalFadeIn 0.3s ease-out;
+  }
+  
+  .image-upload-header {
+    padding: 20px;
+    border-bottom: 1px solid $border-light;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: $gray-50;
+    
+    div {
+      flex: 1;
+    }
+    
+    h3 {
+      margin: 0 0 8px 0;
+      color: $text-primary;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    p {
+      margin: 0;
+      color: $text-secondary;
+      font-size: 14px;
+      
+      strong {
+        color: $wp-primary;
+      }
+    }
+    
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: $text-muted;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      margin-left: 10px;
+      
+      &:hover {
+        background: $gray-200;
+        color: $text-primary;
+      }
+    }
+  }
+  
+  .image-upload-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    
+    .upload-zone {
+      border: 2px dashed $border-medium;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      background: $gray-50;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      margin-bottom: 20px;
+      
+      &:hover, &.drag-over {
+        border-color: $wp-primary;
+        background: rgba($wp-primary, 0.05);
+        transform: translateY(-2px);
+      }
+      
+      &.drag-over {
+        border-style: solid;
+        box-shadow: 0 4px 15px rgba($wp-primary, 0.2);
+      }
+      
+      .upload-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.7;
+      }
+      
+      .upload-text {
+        p {
+          margin: 0 0 8px 0;
+          color: $text-secondary;
+          
+          &:first-child strong {
+            color: $text-primary;
+            font-size: 16px;
+          }
+          
+          &:last-child {
+            font-size: 14px;
+          }
+        }
+        
+        .btn-browse {
+          background: $wp-primary;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          
+          &:hover {
+            background: color.adjust($wp-primary, $lightness: -10%);
+          }
+        }
+      }
+    }
+    
+    .upload-info {
+      background: rgba($wp-success, 0.05);
+      border: 1px solid rgba($wp-success, 0.2);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      
+      h4 {
+        margin: 0 0 10px 0;
+        color: color.adjust($wp-success, $lightness: -20%);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      
+      ul {
+        margin: 0;
+        padding-left: 0;
+        list-style: none;
+        
+        li {
+          margin: 0 0 6px 0;
+          font-size: 13px;
+          color: $text-secondary;
+          padding-left: 20px;
+          position: relative;
+          
+          &::before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            font-size: 12px;
+          }
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+    
+    .upload-progress {
+      text-align: center;
+      
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: $gray-200;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        
+        .progress-fill {
+          height: 100%;
+          background: $wp-primary;
+          width: 0%;
+          transition: width 0.3s ease;
+          border-radius: 4px;
+        }
+      }
+      
+      p {
+        margin: 0;
+        color: $text-secondary;
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .image-upload-footer {
+    padding: 15px 20px;
+    border-top: 1px solid $border-light;
+    display: flex;
+    justify-content: flex-end;
+    background: $gray-50;
+    
+    .btn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid $border-medium;
+      
+      &.btn-secondary {
+        background: white;
+        color: $text-secondary;
+        
+        &:hover {
+          background: $gray-100;
+          border-color: $text-secondary;
+        }
+      }
+    }
+  }
+}
+
+// Enhanced table cell visual feedback for uploaded images
+.modern-table td.updated {
+  &::after {
+    content: "📷";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 12px;
+    z-index: 1;
+  }
+}
+
+// Cursor pointer for image cells
+.modern-table td.column-image {
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    background-color: rgba($wp-primary, 0.05) !important;
+    
+    &::before {
+      content: "Клікніть для завантаження";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      white-space: nowrap;
+      z-index: 1;
+      opacity: 0.9;
+    }
+  }
+  
+  .table-image {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// Animation keyframes
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// Responsive design for mobile
+@media (max-width: 768px) {
+  .image-upload-modal {
+    .image-upload-content {
+      width: 95%;
+      max-height: 90vh;
+    }
+    
+    .image-upload-body {
+      padding: 15px;
+      
+      .upload-zone {
+        padding: 30px 15px;
+        
+        .upload-icon {
+          font-size: 36px;
+        }
+        
+        .upload-text p {
+          font-size: 14px;
+          
+          &:first-child strong {
+            font-size: 15px;
+          }
+        }
+      }
+      
+      .upload-info {
+        padding: 12px;
+        
+        ul li {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+  
+  .modern-table td.column-image {
+    &:hover::before {
+      font-size: 9px;
+      padding: 1px 4px;
+    }
+  }
+} 
