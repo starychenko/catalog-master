@@ -1,7 +1,7 @@
 {
   "name": "catalog-master",
-  "version": "1.1.0",
-  "description": "WordPress plugin for creating and managing virtual catalogs with Google Sheets import",
+  "version": "1.1.3",
+  "description": "WordPress плагін для управління каталогами товарів з імпортом із Google Sheets",
   "type": "module",
   "scripts": {
     "dev": "vite",

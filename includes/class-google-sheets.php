@@ -496,6 +496,19 @@ class CatalogMaster_GoogleSheets {
             $item = array();
             $row_errors = array();
             
+            // Create a helper function to get raw values from current row
+            $get_raw_value_from_row = function($search_column) use ($headers, $row, $mappings) {
+                foreach ($mappings as $mapping) {
+                    if ($mapping->catalog_column === $search_column) {
+                        $column_index = array_search($mapping->google_column, $headers);
+                        if ($column_index !== false && isset($row[$column_index])) {
+                            return trim($row[$column_index]);
+                        }
+                    }
+                }
+                return '';
+            };
+            
             foreach ($mappings as $mapping) {
                 $google_column = $mapping->google_column;
                 $catalog_column = $mapping->catalog_column;
@@ -504,32 +517,77 @@ class CatalogMaster_GoogleSheets {
                 if ($column_index !== false && isset($row[$column_index])) {
                     $original_value = $row[$column_index];
                     
-                    if (strpos($catalog_column, 'image_url') !== false || strpos($catalog_column, 'image_') === 0) {
+                    if ($catalog_column === 'product_image_url' || strpos($catalog_column, 'category_image_') === 0) {
                         if (!empty($original_value)) {
                             $filename_base = '';
                             $image_type = 'category';
 
                             if ($catalog_column === 'product_image_url') {
                                 $image_type = 'product';
-                                $filename_base = isset($item['product_id']) && !empty($item['product_id']) ? $item['product_id'] : ('product_' . ($row_index + 1));
+                                // Get product_id directly from current row, not from $item
+                                $product_id_raw = $get_raw_value_from_row('product_id');
+                                $filename_base = !empty($product_id_raw) ? sanitize_file_name($product_id_raw) : ('product_' . ($row_index + 1));
                             } else {
                                 $level = substr($catalog_column, -1);
                                 $category_id_key = 'category_id_' . $level;
-                                $filename_base = isset($item[$category_id_key]) && !empty($item[$category_id_key]) ? $item[$category_id_key] : ('category' . $level . '_' . ($row_index + 1));
+                                $category_name_key = 'category_name_' . $level;
+                                
+                                // Try to get category_id first, then category_name as fallback
+                                $category_id_raw = $get_raw_value_from_row($category_id_key);
+                                $category_name_raw = '';
+                                
+                                if (empty($category_id_raw)) {
+                                    $category_name_raw = $get_raw_value_from_row($category_name_key);
+                                }
+                                
+                                // Create filename_base: prefer ID, fallback to name, then fallback to generic
+                                if (!empty($category_id_raw)) {
+                                    $filename_base = sanitize_file_name($category_id_raw);
+                                } elseif (!empty($category_name_raw)) {
+                                    // Convert category name to filename-safe format with transliteration
+                                    $filename_base = self::text_to_filename($category_name_raw);
+                                } else {
+                                    $filename_base = 'category' . $level . '_' . ($row_index + 1);
+                                }
+                                
+                                CatalogMaster_Logger::debug("🖼️ Processing category image", array(
+                                    'catalog_column' => $catalog_column,
+                                    'level' => $level,
+                                    'category_id_key' => $category_id_key,
+                                    'category_name_key' => $category_name_key,
+                                    'category_id_raw' => $category_id_raw,
+                                    'category_name_raw' => $category_name_raw,
+                                    'filename_base' => $filename_base,
+                                    'original_url' => $original_value
+                                ));
                             }
 
                             if ($image_type === 'category') {
                                 if (isset($updated_image_cache[$original_value])) {
                                     $item[$catalog_column] = $updated_image_cache[$original_value];
+                                    CatalogMaster_Logger::debug("✅ Using cached category image", array(
+                                        'original_url' => $original_value,
+                                        'cached_url' => $updated_image_cache[$original_value]
+                                    ));
                                 } else {
                                     $local_image_url = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
                                     if (!empty($local_image_url)) {
                                         $updated_image_cache[$original_value] = $local_image_url;
+                                        CatalogMaster_Logger::info("🎨 Downloaded and cached category image", array(
+                                            'original_url' => $original_value,
+                                            'local_url' => $local_image_url,
+                                            'filename_base' => $filename_base
+                                        ));
                                     }
                                     $item[$catalog_column] = $local_image_url;
                                 }
                             } else { 
                                 $item[$catalog_column] = self::download_and_process_image($original_value, $catalog_id, $filename_base, $image_type);
+                                CatalogMaster_Logger::debug("🖼️ Downloaded product image", array(
+                                    'original_url' => $original_value,
+                                    'local_url' => $item[$catalog_column],
+                                    'filename_base' => $filename_base
+                                ));
                             }
                         } else {
                             $item[$catalog_column] = ''; 
@@ -860,5 +918,52 @@ class CatalogMaster_GoogleSheets {
 
         @unlink($temp_file_path); // Ensure temporary file is deleted
         return ''; // Return empty string if any step fails
+    }
+
+    /**
+     * Convert text to filename-safe format with transliteration
+     */
+    private static function text_to_filename($text) {
+        if (empty($text)) {
+            return '';
+        }
+        
+        // Transliteration map for Cyrillic to Latin
+        $transliteration = array(
+            'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'yo', 'ж' => 'zh',
+            'з' => 'z', 'и' => 'i', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o',
+            'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'ts',
+            'ч' => 'ch', 'ш' => 'sh', 'щ' => 'sch', 'ъ' => '', 'ы' => 'y', 'ь' => '', 'э' => 'e', 'ю' => 'yu', 'я' => 'ya',
+            'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Д' => 'D', 'Е' => 'E', 'Ё' => 'Yo', 'Ж' => 'Zh',
+            'З' => 'Z', 'И' => 'I', 'Й' => 'Y', 'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N', 'О' => 'O',
+            'П' => 'P', 'Р' => 'R', 'С' => 'S', 'Т' => 'T', 'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'Ts',
+            'Ч' => 'Ch', 'Ш' => 'Sh', 'Щ' => 'Sch', 'Ъ' => '', 'Ы' => 'Y', 'Ь' => '', 'Э' => 'E', 'Ю' => 'Yu', 'Я' => 'Ya',
+            // Ukrainian letters
+            'і' => 'i', 'ї' => 'yi', 'є' => 'ye', 'ґ' => 'g',
+            'І' => 'I', 'Ї' => 'Yi', 'Є' => 'Ye', 'Ґ' => 'G'
+        );
+        
+        // Apply transliteration
+        $text = strtr($text, $transliteration);
+        
+        // Convert to lowercase
+        $text = strtolower($text);
+        
+        // Replace spaces and special characters with underscores
+        $text = preg_replace('/[^a-z0-9]/', '_', $text);
+        
+        // Remove multiple underscores
+        $text = preg_replace('/_+/', '_', $text);
+        
+        // Remove leading/trailing underscores
+        $text = trim($text, '_');
+        
+        // Limit length
+        if (strlen($text) > 50) {
+            $text = substr($text, 0, 50);
+            $text = trim($text, '_');
+        }
+        
+        return $text;
     }
 } 
