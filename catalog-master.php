@@ -3,7 +3,7 @@
  * Plugin Name: Catalog Master
  * Plugin URI: https://github.com/starychenko/catalog-master
  * Description: Professional WordPress plugin for managing product catalogs with Google Sheets XLSX integration, batch import system, and automated image processing
- * Version: 1.1.7
+ * Version: 1.1.8
  * Author: Yevhenii Starychenko
  * Author URI: https://t.me/evgeniistarychenko
  * Text Domain: catalog-master
@@ -17,7 +17,7 @@
  * Network: false
  * 
  * @package CatalogMaster
- * @version 1.1.7
+ * @version 1.1.8
  * @author Yevhenii Starychenko
  * @license MIT
  */
@@ -33,7 +33,7 @@ if (!defined('ABSPATH') && file_exists(__DIR__ . '/includes/ide-helper.php')) {
 }
 
 // Define plugin constants
-define('CATALOG_MASTER_VERSION', '1.1.7');
+define('CATALOG_MASTER_VERSION', '1.1.8');
 define('CATALOG_MASTER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CATALOG_MASTER_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('CATALOG_MASTER_PLUGIN_FILE', __FILE__);

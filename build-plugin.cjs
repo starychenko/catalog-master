@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
 class WordPressPluginBuilder {
     constructor() {
         this.pluginName = 'catalog-master';
-        this.version = '1.1.7';
+        this.version = '1.1.8';
         this.outputDir = './dist';
         this.sourceDir = './';
         
@@ -297,7 +297,7 @@ class WordPressPluginBuilder {
     // Головний метод збірки
     async build() {
         try {
-            console.log('🔨 ЗБІРКА WORDPRESS ПЛАГІНА CATALOG MASTER v1.1.5\n');
+            console.log(`🔨 ЗБІРКА WORDPRESS ПЛАГІНА CATALOG MASTER v${this.version}\n`);
             console.log('=' .repeat(60));
             
             this.init();
@@ -347,7 +347,7 @@ async function main() {
     
     if (args.includes('--help') || args.includes('-h')) {
         console.log(`
-🔨 WordPress Plugin Builder для Catalog Master v1.1.5
+🔨 WordPress Plugin Builder для Catalog Master v1.1.8
 
 ВИКОРИСТАННЯ:
   node build-plugin.cjs [опції]
@@ -380,7 +380,7 @@ async function main() {
     }
     
     if (args.includes('--version') || args.includes('-v')) {
-        console.log('WordPress Plugin Builder v1.1.5 (Vite Edition)');
+        console.log('WordPress Plugin Builder v1.1.8 (Vite Edition)');
         return;
     }
     
