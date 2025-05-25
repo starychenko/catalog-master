@@ -20,20 +20,43 @@ export default class ModernTableManager {
         this.activeFilters = []; // Store active advanced filters
         this.advancedFilters = null; // Reference to AdvancedFilterManager
         
-        // Column definitions
-        this.columns = [
-            { key: 'product_id', title: 'ID', width: '60px', sortable: true, type: 'number' },
-            { key: 'product_name', title: 'Назва товару', width: '200px', sortable: true, type: 'text' },
-            { key: 'product_price', title: 'Ціна', width: '100px', sortable: true, type: 'currency' },
-            { key: 'product_qty', title: 'Кіл-ть', width: '80px', sortable: true, type: 'number' },
-            { key: 'product_image_url', title: 'Зображення', width: '100px', sortable: false, type: 'image' },
-            { key: 'product_sort_order', title: 'Порядок', width: '80px', sortable: true, type: 'number' },
-            { key: 'product_description', title: 'Опис', width: '200px', sortable: false, type: 'text' },
-            { key: 'category_name_1', title: 'Категорія 1', width: '150px', sortable: true, type: 'text' },
-            { key: 'category_name_2', title: 'Категорія 2', width: '150px', sortable: true, type: 'text' },
-            { key: 'category_name_3', title: 'Категорія 3', width: '150px', sortable: true, type: 'text' },
-            { key: 'actions', title: 'Дії', width: '120px', sortable: false, type: 'actions' }
+        // Column definitions - Full set
+        this.allColumns = [
+            { key: 'id', title: 'ID', width: '60px', sortable: true, type: 'number', group: 'system' },
+            { key: 'product_id', title: 'Product ID', width: '80px', sortable: true, type: 'text', group: 'product' },
+            { key: 'product_name', title: 'Назва товару', width: '200px', sortable: true, type: 'text', group: 'product' },
+            { key: 'product_price', title: 'Ціна', width: '100px', sortable: true, type: 'currency', group: 'product' },
+            { key: 'product_qty', title: 'Кількість', width: '80px', sortable: true, type: 'number', group: 'product' },
+            { key: 'product_image_url', title: 'Зображення', width: '100px', sortable: false, type: 'image', group: 'product' },
+            { key: 'product_sort_order', title: 'Порядок товару', width: '90px', sortable: true, type: 'number', group: 'product' },
+            { key: 'product_description', title: 'Опис', width: '200px', sortable: false, type: 'text', group: 'product' },
+            
+            { key: 'category_id_1', title: 'Cat ID 1', width: '80px', sortable: true, type: 'text', group: 'category1' },
+            { key: 'category_name_1', title: 'Категорія 1', width: '150px', sortable: true, type: 'text', group: 'category1' },
+            { key: 'category_image_1', title: 'Зобр. Кат. 1', width: '90px', sortable: false, type: 'image', group: 'category1' },
+            { key: 'category_sort_order_1', title: 'Пор. Кат. 1', width: '90px', sortable: true, type: 'number', group: 'category1' },
+            
+            { key: 'category_id_2', title: 'Cat ID 2', width: '80px', sortable: true, type: 'text', group: 'category2' },
+            { key: 'category_name_2', title: 'Категорія 2', width: '150px', sortable: true, type: 'text', group: 'category2' },
+            { key: 'category_image_2', title: 'Зобр. Кат. 2', width: '90px', sortable: false, type: 'image', group: 'category2' },
+            { key: 'category_sort_order_2', title: 'Пор. Кат. 2', width: '90px', sortable: true, type: 'number', group: 'category2' },
+            
+            { key: 'category_id_3', title: 'Cat ID 3', width: '80px', sortable: true, type: 'text', group: 'category3' },
+            { key: 'category_name_3', title: 'Категорія 3', width: '150px', sortable: true, type: 'text', group: 'category3' },
+            { key: 'category_image_3', title: 'Зобр. Кат. 3', width: '90px', sortable: false, type: 'image', group: 'category3' },
+            { key: 'category_sort_order_3', title: 'Пор. Кат. 3', width: '90px', sortable: true, type: 'number', group: 'category3' },
+            
+            { key: 'actions', title: 'Дії', width: '120px', sortable: false, type: 'actions', group: 'system' }
         ];
+        
+        // Default visible columns (compact view)
+        this.defaultVisibleColumns = [
+            'id', 'product_id', 'product_name', 'product_price', 'product_qty', 
+            'category_name_1', 'category_name_2', 'category_name_3', 'actions'
+        ];
+        
+        // Set initial columns to default visible
+        this.columns = this.allColumns.filter(col => this.defaultVisibleColumns.includes(col.key));
     }
     
     init() {
@@ -74,6 +97,9 @@ export default class ModernTableManager {
                     </div>
                     
                     <div class="table-controls-right">
+                        <button type="button" id="column-settings" class="btn btn-secondary" title="Налаштування стовпців">
+                            ⚙️ Стовпці
+                        </button>
                         <div class="search-container">
                             <input type="text" id="table-search" placeholder="Пошук..." />
                             <button type="button" id="clear-search" title="Очистити">✕</button>
@@ -176,24 +202,16 @@ export default class ModernTableManager {
             });
         }
         
-        // Sorting
-        const table = document.getElementById('data-table');
-        if (table) {
-            table.addEventListener('click', (e) => {
-                const th = e.target.closest('th[data-sortable="true"]');
-                if (th) {
-                    const column = th.getAttribute('data-column');
-                    if (column === this.sortColumn) {
-                        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        this.sortColumn = column;
-                        this.sortDirection = 'asc';
-                    }
-                    this.updateSortIndicators();
-                    this.loadData();
-                }
+        // Column settings
+        const columnSettings = document.getElementById('column-settings');
+        if (columnSettings) {
+            columnSettings.addEventListener('click', () => {
+                this.showColumnSettings();
             });
         }
+        
+        // Sorting
+        this.bindSortingEvents();
         
         // Scroll detection for sticky header shadow
         const tableWrapper = document.querySelector('.table-wrapper');
@@ -295,11 +313,20 @@ export default class ModernTableManager {
         
         tbody.innerHTML = this.data.map(item => `
             <tr data-id="${item.id}">
-                ${this.columns.map(col => `
-                    <td data-column="${col.key}" class="column-${col.type}">
-                        ${this.renderCell(item, col)}
-                    </td>
-                `).join('')}
+                ${this.columns.map(col => {
+                    const editableColumns = [
+                        'product_id', 'product_name', 'product_price', 'product_qty', 'product_sort_order', 'product_description',
+                        'category_id_1', 'category_id_2', 'category_id_3', 
+                        'category_name_1', 'category_name_2', 'category_name_3',
+                        'category_sort_order_1', 'category_sort_order_2', 'category_sort_order_3'
+                    ];
+                    const isEditable = editableColumns.includes(col.key);
+                    return `
+                        <td data-column="${col.key}" class="column-${col.type}${isEditable ? ' editable' : ''}" ${isEditable ? 'title="Подвійний клік для редагування"' : ''}>
+                            ${this.renderCell(item, col)}
+                        </td>
+                    `;
+                }).join('')}
             </tr>
         `).join('');
         
@@ -357,6 +384,28 @@ export default class ModernTableManager {
                 const itemId = deleteBtn.getAttribute('data-id');
                 this.deleteItem(itemId);
             }
+        });
+        
+        // Double-click for inline editing
+        tbody.addEventListener('dblclick', (e) => {
+            const cell = e.target.closest('td');
+            if (!cell) return;
+            
+            const column = cell.getAttribute('data-column');
+            const row = cell.closest('tr');
+            const itemId = row.getAttribute('data-id');
+            
+            // Skip actions column and non-editable columns
+            if (column === 'actions' || column === 'product_image_url' || column === 'id') {
+                return;
+            }
+            
+            // Don't start edit if already editing
+            if (cell.classList.contains('editing')) {
+                return;
+            }
+            
+            this.startInlineEdit(cell, itemId, column);
         });
     }
     
@@ -580,6 +629,395 @@ export default class ModernTableManager {
         this.activeFilters = [];
         this.currentPage = 1;
         await this.loadData();
+    }
+    
+    /**
+     * Show column settings modal
+     */
+    showColumnSettings() {
+        // Remove existing modal if present
+        const existingModal = document.getElementById('column-settings-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'column-settings-modal';
+        modal.className = 'column-settings-modal';
+        
+        // Group columns by category
+        const groups = {
+            system: { title: 'Системні', columns: [] },
+            product: { title: 'Товар', columns: [] },
+            category1: { title: 'Категорія 1', columns: [] },
+            category2: { title: 'Категорія 2', columns: [] },
+            category3: { title: 'Категорія 3', columns: [] }
+        };
+        
+        this.allColumns.forEach(col => {
+            if (col.group && groups[col.group]) {
+                groups[col.group].columns.push(col);
+            }
+        });
+        
+        let modalContent = `
+            <div class="column-settings-content">
+                <div class="column-settings-header">
+                    <h3>Налаштування стовпців</h3>
+                    <button type="button" class="close-modal">&times;</button>
+                </div>
+                <div class="column-settings-body">
+                    <div class="preset-buttons">
+                        <button type="button" class="preset-btn" data-preset="compact">📱 Компактний</button>
+                        <button type="button" class="preset-btn" data-preset="full">📊 Повний</button>
+                        <button type="button" class="preset-btn" data-preset="product">📦 Тільки товари</button>
+                    </div>
+                    <div class="column-groups">
+        `;
+        
+        Object.entries(groups).forEach(([groupKey, group]) => {
+            if (group.columns.length > 0) {
+                modalContent += `
+                    <div class="column-group">
+                        <h4>${group.title}</h4>
+                        <div class="column-checkboxes">
+                `;
+                
+                group.columns.forEach(col => {
+                    const isVisible = this.columns.some(c => c.key === col.key);
+                    modalContent += `
+                        <label class="column-checkbox">
+                            <input type="checkbox" value="${col.key}" ${isVisible ? 'checked' : ''}>
+                            <span>${col.title}</span>
+                        </label>
+                    `;
+                });
+                
+                modalContent += `
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        modalContent += `
+                    </div>
+                </div>
+                <div class="column-settings-footer">
+                    <button type="button" class="btn btn-secondary cancel-btn">Скасувати</button>
+                    <button type="button" class="btn btn-primary apply-btn">Застосувати</button>
+                </div>
+            </div>
+        `;
+        
+        modal.innerHTML = modalContent;
+        document.body.appendChild(modal);
+        
+        // Bind events
+        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('.cancel-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.apply-btn').addEventListener('click', () => this.applyColumnSettings(modal));
+        
+        // Preset buttons
+        modal.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = e.target.dataset.preset;
+                this.applyColumnPreset(modal, preset);
+            });
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+    
+    /**
+     * Apply column preset
+     */
+    applyColumnPreset(modal, preset) {
+        const checkboxes = modal.querySelectorAll('input[type="checkbox"]');
+        
+        let visibleColumns = [];
+        switch (preset) {
+            case 'compact':
+                visibleColumns = ['id', 'product_name', 'product_price', 'product_qty', 'category_name_1', 'actions'];
+                break;
+            case 'full':
+                visibleColumns = this.allColumns.map(col => col.key);
+                break;
+            case 'product':
+                visibleColumns = ['id', 'product_id', 'product_name', 'product_price', 'product_qty', 
+                               'product_image_url', 'product_sort_order', 'product_description', 'actions'];
+                break;
+        }
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = visibleColumns.includes(checkbox.value);
+        });
+    }
+    
+    /**
+     * Apply column settings
+     */
+    applyColumnSettings(modal) {
+        const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+        
+        // Update visible columns
+        this.columns = this.allColumns.filter(col => selectedColumns.includes(col.key));
+        
+        // Update table headers and structure
+        this.updateTableStructure();
+        
+        // Reload data with new columns
+        this.loadData();
+        
+        // Close modal
+        modal.remove();
+        
+        console.log('📊 Updated visible columns:', selectedColumns);
+    }
+    
+    /**
+     * Update table structure without recreating the entire container
+     */
+    updateTableStructure() {
+        const table = document.getElementById('data-table');
+        if (!table) return;
+        
+        // Update table headers
+        const thead = table.querySelector('thead tr');
+        if (thead) {
+            thead.innerHTML = this.columns.map(col => `
+                <th data-column="${col.key}" data-sortable="${col.sortable}" class="${col.sortable ? 'sortable' : ''}" style="width: ${col.width}">
+                    ${col.title}
+                    ${col.sortable ? '<span class="sort-indicator">↕</span>' : ''}
+                </th>
+            `).join('');
+            
+            console.log('📊 Updated table headers for', this.columns.length, 'columns');
+        }
+        
+        // Clear tbody - will be refilled by loadData()
+        const tbody = document.getElementById('table-body');
+        if (tbody) {
+            tbody.innerHTML = '';
+        }
+        
+        // Update sort indicators if we have current sorting
+        this.updateSortIndicators();
+        
+        // Re-bind sorting events for new headers
+        this.bindSortingEvents();
+    }
+    
+    /**
+     * Bind sorting events specifically for table headers
+     */
+    bindSortingEvents() {
+        const table = document.getElementById('data-table');
+        if (!table) return;
+        
+        // Remove existing sorting listeners (if any)
+        const existingHandler = table._sortingHandler;
+        if (existingHandler) {
+            table.removeEventListener('click', existingHandler);
+        }
+        
+        // Create and bind new sorting handler
+        const sortingHandler = (e) => {
+            const th = e.target.closest('th[data-sortable="true"]');
+            if (th) {
+                const column = th.getAttribute('data-column');
+                if (column === this.sortColumn) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+                this.updateSortIndicators();
+                this.loadData();
+            }
+        };
+        
+        table.addEventListener('click', sortingHandler);
+        table._sortingHandler = sortingHandler; // Store reference for cleanup
+        
+        console.log('📊 Sorting events re-bound to updated headers');
+    }
+    
+    /**
+     * Start inline editing of a cell
+     */
+    startInlineEdit(cell, itemId, column) {
+        // Check if column is editable
+        const editableColumns = [
+            'product_id', 'product_name', 'product_price', 'product_qty', 'product_sort_order', 'product_description',
+            'category_id_1', 'category_id_2', 'category_id_3', 
+            'category_name_1', 'category_name_2', 'category_name_3',
+            'category_sort_order_1', 'category_sort_order_2', 'category_sort_order_3'
+        ];
+        if (!editableColumns.includes(column)) {
+            return;
+        }
+        
+        // Prevent multiple edits
+        if (cell.querySelector('.inline-edit-input')) {
+            return;
+        }
+        
+        const currentValue = this.getCellValue(itemId, column);
+        const columnConfig = this.columns.find(col => col.key === column);
+        
+        // Create input element
+        const input = document.createElement('input');
+        input.className = 'inline-edit-input';
+        input.value = currentValue;
+        input.dataset.itemId = itemId;
+        input.dataset.column = column;
+        input.dataset.originalValue = currentValue;
+        
+        // Set input type based on column type
+        if (columnConfig.type === 'number' || columnConfig.type === 'currency') {
+            input.type = 'number';
+            input.step = 'any';
+        } else {
+            input.type = 'text';
+        }
+        
+        // Store original content
+        const originalContent = cell.innerHTML;
+        cell.dataset.originalContent = originalContent;
+        
+        // Replace cell content with input
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        cell.classList.add('editing');
+        
+        // Focus and select
+        input.focus();
+        input.select();
+        
+        // Bind events
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.saveInlineEdit(cell, input);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.cancelInlineEdit(cell);
+            }
+        });
+        
+        input.addEventListener('blur', () => {
+            // Small delay to allow click events to process
+            setTimeout(() => {
+                if (document.activeElement !== input) {
+                    this.saveInlineEdit(cell, input);
+                }
+            }, 100);
+        });
+        
+        console.log(`📝 Started editing ${column} for item ${itemId}`);
+    }
+    
+    /**
+     * Save inline edit changes
+     */
+    async saveInlineEdit(cell, input) {
+        const itemId = input.dataset.itemId;
+        const column = input.dataset.column;
+        const newValue = input.value.trim();
+        const originalValue = input.dataset.originalValue;
+        
+        // Check if value changed
+        if (newValue === originalValue) {
+            this.cancelInlineEdit(cell);
+            return;
+        }
+        
+        // Show saving state
+        input.disabled = true;
+        cell.classList.add('saving');
+        
+        try {
+            // Call API to update the item
+            const updateData = {};
+            updateData[column] = newValue;
+            
+            await this.api.updateCatalogItem(itemId, updateData);
+            
+            // Update local data
+            const dataItem = this.data.find(item => item.id == itemId);
+            if (dataItem) {
+                dataItem[column] = newValue;
+            }
+            
+            // Restore cell with new content
+            const columnConfig = this.columns.find(col => col.key === column);
+            cell.innerHTML = this.renderCell(dataItem, columnConfig);
+            cell.classList.remove('editing', 'saving');
+            cell.classList.add('updated');
+            
+            // Remove updated class after animation
+            setTimeout(() => {
+                cell.classList.remove('updated');
+            }, 2000);
+            
+            console.log(`✅ Updated ${column} for item ${itemId}: ${originalValue} → ${newValue}`);
+            
+        } catch (error) {
+            console.error('📊 Error saving inline edit:', error);
+            
+            // Show error state
+            cell.classList.add('error');
+            input.disabled = false;
+            input.focus();
+            
+            // Remove error class after delay
+            setTimeout(() => {
+                cell.classList.remove('error');
+            }, 3000);
+            
+            alert('Помилка збереження: ' + error.message);
+        } finally {
+            cell.classList.remove('saving');
+        }
+    }
+    
+    /**
+     * Cancel inline edit
+     */
+    cancelInlineEdit(cell) {
+        const originalContent = cell.dataset.originalContent;
+        if (originalContent) {
+            cell.innerHTML = originalContent;
+        }
+        cell.classList.remove('editing', 'saving', 'error');
+        delete cell.dataset.originalContent;
+        
+        console.log('❌ Cancelled inline edit');
+    }
+    
+    /**
+     * Get cell value from data
+     */
+    getCellValue(itemId, column) {
+        const item = this.data.find(item => item.id == itemId);
+        if (!item) return '';
+        
+        const value = item[column] || '';
+        
+        // For currency, return just the number
+        if (column === 'product_price' && value) {
+            return parseFloat(value).toString();
+        }
+        
+        return value.toString();
     }
     
     /**

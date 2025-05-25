@@ -431,7 +431,12 @@ class CatalogMaster_Ajax {
         $table = $wpdb->prefix . 'catalog_master_items';
         
         $item_id = intval($_POST['item_id']);
-        $data = $_POST['data'];
+        
+        // Handle both legacy format (with 'data' array) and new inline editing format
+        $data = isset($_POST['data']) ? $_POST['data'] : $_POST;
+        
+        // Remove system fields that shouldn't be updated
+        unset($data['action'], $data['nonce'], $data['item_id']);
         
         // Sanitize data
         $update_data = array();
@@ -456,12 +461,27 @@ class CatalogMaster_Ajax {
             }
         }
         
+        if (empty($update_data)) {
+            wp_send_json_error('Немає даних для оновлення');
+            return;
+        }
+        
         $result = $wpdb->update($table, $update_data, array('id' => $item_id));
         
         if ($result !== false) {
-            wp_send_json_success('Запис оновлено');
+            // Get updated item data to return
+            $updated_item = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id = %d",
+                $item_id
+            ));
+            
+            wp_send_json_success(array(
+                'message' => 'Запис оновлено',
+                'updated_data' => $update_data,
+                'item' => $updated_item
+            ));
         } else {
-            wp_send_json_error('Помилка оновлення');
+            wp_send_json_error('Помилка оновлення: ' . $wpdb->last_error);
         }
     }
     

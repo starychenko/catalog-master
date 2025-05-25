@@ -29,23 +29,23 @@ export default class AdvancedFilterManager {
         
         // Available columns for filtering
         this.columns = {
-            'id': { label: 'ID', type: 'number' },
-            'product_id': { label: 'ID товару', type: 'text' },
+            'id': { label: 'ID запису', type: 'number' },
+            'product_id': { label: 'Product ID', type: 'text' },
             'product_name': { label: 'Назва товару', type: 'text' },
             'product_price': { label: 'Ціна', type: 'number' },
             'product_qty': { label: 'Кількість', type: 'number' },
             'product_image_url': { label: 'Зображення товару', type: 'text' },
             'product_sort_order': { label: 'Порядок товару', type: 'number' },
             'product_description': { label: 'Опис товару', type: 'text' },
-            'category_id_1': { label: 'Категорія 1 ID', type: 'text' },
+            'category_id_1': { label: 'Category ID 1', type: 'text' },
             'category_name_1': { label: 'Категорія 1', type: 'text' },
             'category_image_1': { label: 'Зображення категорії 1', type: 'text' },
             'category_sort_order_1': { label: 'Порядок категорії 1', type: 'number' },
-            'category_id_2': { label: 'Категорія 2 ID', type: 'text' },
+            'category_id_2': { label: 'Category ID 2', type: 'text' },
             'category_name_2': { label: 'Категорія 2', type: 'text' },
             'category_image_2': { label: 'Зображення категорії 2', type: 'text' },
             'category_sort_order_2': { label: 'Порядок категорії 2', type: 'number' },
-            'category_id_3': { label: 'Категорія 3 ID', type: 'text' },
+            'category_id_3': { label: 'Category ID 3', type: 'text' },
             'category_name_3': { label: 'Категорія 3', type: 'text' },
             'category_image_3': { label: 'Зображення категорії 3', type: 'text' },
             'category_sort_order_3': { label: 'Порядок категорії 3', type: 'number' }

@@ -241,6 +241,16 @@ export default class ApiClient {
     }
     
     /**
+     * Update catalog item (for inline editing)
+     */
+    async updateCatalogItem(itemId, updateData) {
+        return this.request('catalog_master_update_item', {
+            item_id: itemId,
+            ...updateData
+        });
+    }
+    
+    /**
      * Get catalog statistics (items count, mappings count)
      */
     async getCatalogStats(catalogId) {
