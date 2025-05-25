@@ -154,6 +154,15 @@ export default class ApiClient {
     }
     
     /**
+     * Get existing column mapping
+     */
+    async getColumnMapping(catalogId) {
+        return this.request('catalog_master_get_column_mapping', {
+            catalog_id: catalogId
+        });
+    }
+    
+    /**
      * Import data from Google Sheets
      */
     async importData(catalogId, offset, batchSize, isFirstBatch) {

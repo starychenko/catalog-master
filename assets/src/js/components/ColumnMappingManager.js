@@ -77,7 +77,14 @@ export default class ColumnMappingManager {
         document.addEventListener('change', (e) => {
             if (e.target.classList.contains('column-mapping-select')) {
                 if (e.target.classList.contains('google-column')) {
-                    // Google column changed - update all selects and status
+                    // Google column changed - update all Google selects
+                    this.updateGoogleColumnSelects();
+                    // Also update catalog selects and status
+                    this.updateCatalogColumnSelects();
+                } else if (e.target.classList.contains('catalog-column')) {
+                    // Catalog column changed - update all catalog selects
+                    this.updateCatalogColumnSelects();
+                    // Also update Google selects
                     this.updateGoogleColumnSelects();
                 }
                 this.updateCatalogColumnStatus();
@@ -152,6 +159,7 @@ export default class ColumnMappingManager {
             } else {
                 // Update existing select options with new headers
                 this.updateGoogleColumnSelects();
+                this.updateCatalogColumnSelects();
             }
             
             this.updateColumnStatus();
@@ -366,33 +374,89 @@ export default class ColumnMappingManager {
      * Update all Google column selects to hide used options
      */
     updateGoogleColumnSelects() {
+        const usedGoogleColumns = this.getUsedGoogleColumns();
+        
+        // Update all Google column selects
+        const googleSelects = document.querySelectorAll('.google-column');
+        googleSelects.forEach(select => {
+            const currentValue = select.value;
+            
+            // Clear current options
+            select.innerHTML = '<option value="">-- Оберіть стовпець --</option>';
+            
+            // Add options, hiding used ones (except current)
+            this.googleHeaders.forEach(header => {
+                const isUsed = usedGoogleColumns.includes(header);
+                const isCurrent = header === currentValue;
+                
+                // Show option if it's not used OR if it's the current value
+                if (!isUsed || isCurrent) {
+                    const option = document.createElement('option');
+                    option.value = header;
+                    option.textContent = header;
+                    if (isCurrent) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+            });
+        });
+    }
+    
+    /**
+     * Update all catalog column selects to hide used options  
+     */
+    updateCatalogColumnSelects() {
+        const usedCatalogColumns = this.getUsedCatalogColumns();
+        
+        // Update all catalog column selects
+        const catalogSelects = document.querySelectorAll('.catalog-column');
+        catalogSelects.forEach(select => {
+            const currentValue = select.value;
+            
+            // Clear current options
+            select.innerHTML = '<option value="">-- Оберіть поле --</option>';
+            
+            // Add options, hiding used ones (except current)
+            this.catalogColumns.forEach(col => {
+                const isUsed = usedCatalogColumns.includes(col.value);
+                const isCurrent = col.value === currentValue;
+                
+                // Show option if it's not used OR if it's the current value
+                if (!isUsed || isCurrent) {
+                    const option = document.createElement('option');
+                    option.value = col.value;
+                    option.textContent = col.label;
+                    if (isCurrent) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+            });
+        });
+    }
+
+    /**
+     * Get currently used catalog columns
+     */
+    getUsedCatalogColumns(excludeRow = null) {
+        const usedColumns = [];
         const mappingRows = document.querySelectorAll('#column-mapping-rows .column-mapping-row');
         
         mappingRows.forEach(row => {
-            const googleSelect = row.querySelector('.google-column');
-            if (!googleSelect) return;
-            
-            const currentValue = googleSelect.value;
-            const usedColumns = this.getUsedGoogleColumns(row);
-            
-            // Rebuild options
-            let googleOptionsHtml = '<option value="">-- Оберіть стовпець --</option>';
-            
-            if (this.googleHeaders.length > 0) {
-                this.googleHeaders.forEach(header => {
-                    // Show option if it's not used OR if it's the current value
-                    const isUsed = usedColumns.includes(header);
-                    const isCurrent = header === currentValue;
-                    
-                    if (!isUsed || isCurrent) {
-                        const selected = isCurrent ? 'selected' : '';
-                        googleOptionsHtml += `<option value="${header}" ${selected}>${header}</option>`;
-                    }
-                });
+            if (excludeRow && row === excludeRow) {
+                return; // Skip the row we're currently editing
             }
             
-            googleSelect.innerHTML = googleOptionsHtml;
+            const catalogSelect = row.querySelector('.catalog-column');
+            const catalogColumn = catalogSelect?.value;
+            
+            if (catalogColumn) {
+                usedColumns.push(catalogColumn);
+            }
         });
+        
+        return usedColumns;
     }
     
     /**
@@ -401,7 +465,8 @@ export default class ColumnMappingManager {
     addMappingRowForColumn(catalogColumn, googleColumn, index) {
         // Get used columns to exclude from options
         const usedGoogleColumns = this.getUsedGoogleColumns();
-        
+        const usedCatalogColumns = this.getUsedCatalogColumns();
+
         // Google options HTML - exclude used columns unless it's the current value
         let googleOptionsHtml = '<option value="">-- Оберіть стовпець --</option>';
         if (this.googleHeaders.length > 0) {
@@ -417,11 +482,17 @@ export default class ColumnMappingManager {
             });
         }
         
-        // Catalog options HTML
+        // Catalog options HTML - exclude used columns unless it's the current value
         let catalogOptionsHtml = '<option value="">-- Оберіть поле --</option>';
         this.catalogColumns.forEach(col => {
-            const selected = col.value === catalogColumn ? 'selected' : '';
-            catalogOptionsHtml += `<option value="${col.value}" ${selected}>${col.label}</option>`;
+            const isUsed = usedCatalogColumns.includes(col.value);
+            const isCurrent = col.value === catalogColumn;
+            
+            // Show option if it's not used OR if it's the current value
+            if (!isUsed || isCurrent) {
+                const selected = isCurrent ? 'selected' : '';
+                catalogOptionsHtml += `<option value="${col.value}" ${selected}>${col.label}</option>`;
+            }
         });
         
         const rowHtml = `
@@ -439,24 +510,6 @@ export default class ColumnMappingManager {
         const container = document.getElementById('column-mapping-rows');
         if (container) {
             container.insertAdjacentHTML('beforeend', rowHtml);
-            
-            // Add event listeners for both selects in the new row
-            const newRow = container.lastElementChild;
-            const newGoogleSelect = newRow.querySelector('.google-column');
-            const newCatalogSelect = newRow.querySelector('.catalog-column');
-            
-            if (newGoogleSelect) {
-                newGoogleSelect.addEventListener('change', () => {
-                    this.updateGoogleColumnSelects();
-                    this.updateCatalogColumnStatus();
-                });
-            }
-            
-            if (newCatalogSelect) {
-                newCatalogSelect.addEventListener('change', () => {
-                    this.updateCatalogColumnStatus();
-                });
-            }
         }
         
         // Update status after adding new row
@@ -471,8 +524,9 @@ export default class ColumnMappingManager {
         const row = e.target.closest('.column-mapping-row');
         if (row) {
             row.remove();
-            // Update selects and status after removing
+            // Update both Google and catalog selects after removing
             this.updateGoogleColumnSelects();
+            this.updateCatalogColumnSelects();
             this.updateCatalogColumnStatus();
         }
     }
@@ -629,15 +683,36 @@ export default class ColumnMappingManager {
         
         if (!catalogId) return;
         
-        // Load existing mappings if any
-        // This would be implemented when we have the backend API ready
-        console.log('Loading existing column mapping data for catalog:', catalogId);
+        console.log('🔄 Loading existing column mapping data for catalog:', catalogId);
         
-        // After loading existing mappings (when implemented), update the dropdowns
-        setTimeout(() => {
-            this.updateGoogleColumnSelects();
-            this.updateCatalogColumnStatus();
-        }, 100);
+        try {
+            // Load existing mappings from database
+            const response = await this.api.getColumnMapping(catalogId);
+            
+            if (response.mappings && response.mappings.length > 0) {
+                console.log('✅ Existing mappings found:', response.mappings);
+                
+                // Clear current mapping rows container
+                const container = document.getElementById('column-mapping-rows');
+                if (container) {
+                    container.innerHTML = '';
+                    
+                    // Add rows for each existing mapping
+                    response.mappings.forEach((mapping, index) => {
+                        this.addMappingRowForColumn(mapping.catalog_column, mapping.google_column, index);
+                    });
+                    
+                    // Update status after loading
+                    this.updateCatalogColumnStatus();
+                    
+                    console.log('✅ Existing mappings loaded and displayed');
+                }
+            } else {
+                console.log('ℹ️ No existing mappings found for catalog:', catalogId);
+            }
+        } catch (error) {
+            console.error('❌ Error loading existing mappings:', error);
+        }
     }
     
     /**

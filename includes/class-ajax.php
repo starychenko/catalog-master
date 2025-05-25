@@ -20,6 +20,7 @@ class CatalogMaster_Ajax {
         add_action('wp_ajax_catalog_master_update_item', array($this, 'update_item'));
         add_action('wp_ajax_catalog_master_delete_item', array($this, 'delete_item'));
         add_action('wp_ajax_catalog_master_add_item', array($this, 'add_item'));
+        add_action('wp_ajax_catalog_master_get_column_mapping', array($this, 'get_column_mapping'));
     }
     
     /**
@@ -133,6 +134,38 @@ class CatalogMaster_Ajax {
             ));
             wp_send_json_error('Помилка збереження в базу даних');
         }
+    }
+    
+    /**
+     * Get existing column mapping for catalog
+     */
+    public function get_column_mapping() {
+        check_ajax_referer('catalog_master_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        $catalog_id = intval($_POST['catalog_id']);
+        
+        if (!$catalog_id) {
+            wp_send_json_error('Невірний ID каталогу');
+        }
+        
+        $mappings = CatalogMaster_Database::get_column_mapping($catalog_id);
+        
+        // Format mappings for frontend
+        $formatted_mappings = array();
+        foreach ($mappings as $mapping) {
+            $formatted_mappings[] = array(
+                'google_column' => $mapping->google_column,
+                'catalog_column' => $mapping->catalog_column
+            );
+        }
+        
+        wp_send_json_success(array(
+            'mappings' => $formatted_mappings
+        ));
     }
     
     /**

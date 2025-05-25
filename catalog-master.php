@@ -3,7 +3,7 @@
  * Plugin Name: Catalog Master
  * Plugin URI: https://github.com/yourusername/catalog-master
  * Description: WordPress плагін для управління каталогами товарів з імпортом із Google Sheets (XLSX), професійною обробкою зображень, та сучасним UI. Підтримка тисяч товарів з батч-системою імпорту.
- * Version: 1.1.3
+ * Version: 1.1.4
  * Author: Your Name
  * Author URI: https://yourwebsite.com
  * Text Domain: catalog-master
@@ -17,7 +17,7 @@
  * Network: false
  * 
  * @package CatalogMaster
- * @version 1.1.3
+ * @version 1.1.4
  * @author Your Name
  * @license MIT
  */
@@ -33,7 +33,7 @@ if (!defined('ABSPATH') && file_exists(__DIR__ . '/includes/ide-helper.php')) {
 }
 
 // Define plugin constants
-define('CATALOG_MASTER_VERSION', '1.1.3');
+define('CATALOG_MASTER_VERSION', '1.1.4');
 define('CATALOG_MASTER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CATALOG_MASTER_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('CATALOG_MASTER_PLUGIN_FILE', __FILE__);
