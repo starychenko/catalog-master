@@ -205,7 +205,7 @@ export default class ApiClient {
      * Export data
      */
     async exportData(catalogId, format) {
-        return this.request('catalog_master_export_data', {
+        return this.request('catalog_master_export', {
             catalog_id: catalogId,
             format: format
         });

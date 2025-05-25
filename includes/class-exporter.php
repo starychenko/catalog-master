@@ -524,5 +524,4 @@ class CatalogMaster_Exporter {
     }
 }
 
-// Initialize exporter
-new CatalogMaster_Exporter(); 
+// Remove automatic initialization - will be done in main plugin 
