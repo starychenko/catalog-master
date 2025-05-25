@@ -19,6 +19,9 @@ class CatalogMaster_Admin {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('admin_init', array($this, 'handle_form_submissions'));
+        
+        // AJAX handlers
+        add_action('wp_ajax_catalog_master_cleanup_test_image', array($this, 'ajax_cleanup_test_image'));
     }
     
     public function add_admin_menu() {
@@ -1744,14 +1747,33 @@ class CatalogMaster_Admin {
             // Test WordPress Image Editor
             echo '<div class="test-result">';
             echo '<strong>WordPress Image Editor тест:</strong> ';
-            $available_editors = wp_image_editor_supports();
-            if (!empty($available_editors) && is_array($available_editors)) {
-                echo '<span style="color: green;">✅ Доступні редактори: ' . implode(', ', array_keys($available_editors)) . '</span>';
+            
+            // Test available image editors correctly
+            $editors = array();
+            if (class_exists('WP_Image_Editor_GD') && WP_Image_Editor_GD::test()) {
+                $editors[] = 'GD';
+            }
+            if (class_exists('WP_Image_Editor_Imagick') && WP_Image_Editor_Imagick::test()) {
+                $editors[] = 'ImageMagick';
+            }
+            
+            if (!empty($editors)) {
+                echo '<span style="color: green;">✅ Доступні редактори: ' . implode(', ', $editors) . '</span>';
             } else {
                 echo '<span style="color: red;">❌ Немає доступних редакторів</span>';
-                if ($available_editors !== false && !is_array($available_editors)) {
-                    echo '<br><small>Неочікуваний тип даних: ' . gettype($available_editors) . '</small>';
+                
+                // Additional debug info
+                echo '<br><small>GD тест: ' . (class_exists('WP_Image_Editor_GD') ? 'клас є' : 'немає класу');
+                if (class_exists('WP_Image_Editor_GD')) {
+                    echo ', test(): ' . (WP_Image_Editor_GD::test() ? 'passed' : 'failed');
                 }
+                echo '</small>';
+                
+                echo '<br><small>ImageMagick тест: ' . (class_exists('WP_Image_Editor_Imagick') ? 'клас є' : 'немає класу');
+                if (class_exists('WP_Image_Editor_Imagick')) {
+                    echo ', test(): ' . (WP_Image_Editor_Imagick::test() ? 'passed' : 'failed');
+                }
+                echo '</small>';
             }
             echo '</div>';
             ?>
@@ -2043,6 +2065,40 @@ class CatalogMaster_Admin {
         echo '.test-step li { margin: 3px 0; }';
         echo '.test-conclusion { margin-top: 20px; }';
         echo '</style>';
+    }
+    
+    /**
+     * AJAX handler for cleaning up test images
+     */
+    public function ajax_cleanup_test_image() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'cleanup_test_image')) {
+            wp_die('Security check failed');
+        }
+        
+        // Verify user permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        $file_path = sanitize_text_field($_POST['path']);
+        
+        // Security check: file must be in uploads directory and be a test image
+        $upload_dir = wp_upload_dir();
+        if (strpos($file_path, $upload_dir['basedir']) !== 0 || strpos($file_path, 'test_image_') === false) {
+            wp_die('Invalid file path');
+        }
+        
+        // Delete the file if it exists
+        if (file_exists($file_path)) {
+            if (unlink($file_path)) {
+                wp_send_json_success('Test image cleaned up successfully');
+            } else {
+                wp_send_json_error('Failed to delete test image');
+            }
+        } else {
+            wp_send_json_success('Test image already cleaned up');
+        }
     }
 }
 

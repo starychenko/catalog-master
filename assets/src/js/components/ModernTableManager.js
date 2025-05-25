@@ -20,6 +20,7 @@ export default class ModernTableManager {
         this.activeFilters = []; // Store active advanced filters
         this.advancedFilters = null; // Reference to AdvancedFilterManager
         this.lastPresetOrder = null; // Store preset column order
+        this.rowActionsAttached = false; // Track if row actions are already attached
         
         // Column definitions - Full set
         this.allColumns = [
@@ -80,6 +81,9 @@ export default class ModernTableManager {
             console.error('📊 Table container not found');
             return;
         }
+        
+        // Reset row actions flag since we're creating a new table structure
+        this.rowActionsAttached = false;
         
         // Replace old table with modern container
         container.outerHTML = `
@@ -368,6 +372,11 @@ export default class ModernTableManager {
      * Bind row action events
      */
     bindRowActions() {
+        // Only attach events once to prevent multiple handlers
+        if (this.rowActionsAttached) {
+            return;
+        }
+        
         const tbody = document.getElementById('table-body');
         if (!tbody) return;
         
@@ -420,6 +429,10 @@ export default class ModernTableManager {
             
             this.startInlineEdit(cell, itemId, column);
         });
+        
+        // Mark as attached
+        this.rowActionsAttached = true;
+        console.log('📊 Row actions attached once');
     }
     
     /**
@@ -1314,6 +1327,9 @@ export default class ModernTableManager {
         if (imageModal) {
             imageModal.remove();
         }
+        
+        // Reset row actions flag
+        this.rowActionsAttached = false;
         
         console.log('📊 Modern Table Manager destroyed');
     }
