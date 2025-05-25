@@ -94,6 +94,33 @@ export default class ApiClient {
             }
 
             console.log('📥 AJAX Result:', result);
+            
+            // Enhanced logging for specific actions
+            if (action === 'catalog_master_import_data' && result.data) {
+                const data = result.data;
+                console.log('📊 Import Progress:', {
+                    processed_in_batch: data.processed_in_this_batch || 0,
+                    total_in_sheet: data.total_items_in_sheet || 0,
+                    next_offset: data.next_offset || 0,
+                    is_complete: data.is_complete || false,
+                    message: data.message || ''
+                });
+            } else if (action === 'catalog_master_get_sheets_headers' && result.data) {
+                console.log('📋 Sheets Headers:', {
+                    headers_count: result.data.headers ? result.data.headers.length : 0,
+                    headers: result.data.headers || []
+                });
+            } else if (action === 'catalog_master_save_column_mapping' && result.data) {
+                console.log('💾 Column Mapping Saved:', {
+                    saved_count: result.data.saved_count || 0,
+                    message: result.data.message || ''
+                });
+            } else if (action === 'catalog_master_get_column_mapping' && result.data) {
+                console.log('📂 Column Mapping Loaded:', {
+                    mappings_count: result.data.mappings ? result.data.mappings.length : 0,
+                    mappings: result.data.mappings || []
+                });
+            }
 
             if (typeof result !== 'object' || result === null) {
                 console.error('❌ AJAX Error: Parsed result is not an object.', { result });
@@ -178,7 +205,7 @@ export default class ApiClient {
      * Export data
      */
     async exportData(catalogId, format) {
-        return this.request('catalog_master_export', {
+        return this.request('catalog_master_export_data', {
             catalog_id: catalogId,
             format: format
         });
@@ -210,6 +237,15 @@ export default class ApiClient {
         return this.request('catalog_master_save_item', {
             catalog_id: catalogId,
             ...itemData
+        });
+    }
+    
+    /**
+     * Get catalog statistics (items count, mappings count)
+     */
+    async getCatalogStats(catalogId) {
+        return this.request('catalog_master_get_catalog_stats', {
+            catalog_id: catalogId
         });
     }
 } 

@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
 class WordPressPluginBuilder {
     constructor() {
         this.pluginName = 'catalog-master';
-        this.version = '1.1.5';
+        this.version = '1.1.6';
         this.outputDir = './dist';
         this.sourceDir = './';
         

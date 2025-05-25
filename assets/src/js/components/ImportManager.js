@@ -78,17 +78,18 @@ export default class ImportManager {
             }
 
             this.totalItemsProcessed += response.processed_in_this_batch || 0;
-            this.updateProgressIndicator(response.message);
-
+            
             if (response.is_complete) {
                 // Import finished
-                this.updateProgressIndicator('Імпорт завершено!', true);
+                this.updateProgressIndicator('', true);
                 setTimeout(() => {
-                    showMessage(response.message || 'Імпорт успішно завершено.', 'success');
+                    showMessage('Імпорт успішно завершено!', 'success');
                     this.cleanupImport(buttonElement, originalButtonText);
                     this.refreshDataAndSwitchTab();
                 }, 1000);
             } else {
+                // Update progress without server message (we format our own)
+                this.updateProgressIndicator();
                 // Process next batch
                 this.processBatch(response.next_offset, originalButtonText, buttonElement);
             }
@@ -111,10 +112,19 @@ export default class ImportManager {
         const progressFill = this.progressContainer.querySelector('.import-progress-fill');
 
         if (progressText) {
-            if (this.totalItemsToProcess > 0 && !isError) {
-                progressText.textContent = `Обробка: ${this.totalItemsProcessed} / ${this.totalItemsToProcess}. ${message}`;
-            } else {
+            if (this.totalItemsToProcess > 0 && !isError && !isComplete) {
+                // Calculate batch info for better UX
+                const currentBatch = this.totalItemsProcessed > 0 ? Math.ceil(this.totalItemsProcessed / this.batchSize) : 1;
+                const totalBatches = Math.ceil(this.totalItemsToProcess / this.batchSize);
+                
+                progressText.textContent = `Імпорт: ${this.totalItemsProcessed} / ${this.totalItemsToProcess} товарів (батч ${currentBatch}/${totalBatches})`;
+            } else if (isComplete && !isError) {
+                progressText.textContent = `✅ Імпорт завершено! Оброблено ${this.totalItemsProcessed} товарів`;
+            } else if (isError) {
                 progressText.textContent = message;
+            } else {
+                // Initial state or other cases
+                progressText.textContent = message || 'Ініціалізація імпорту...';
             }
         }
 
@@ -164,9 +174,94 @@ export default class ImportManager {
         if (this.state.app && this.state.app.components && this.state.app.components.dataTable) {
             this.state.app.components.dataTable.reload();
         }
+        
+        // Update export tab interface
+        this.updateExportTabInterface();
+        
         const dataTabLink = document.querySelector('a[href="#tab-data"]');
         if (dataTabLink) {
             setTimeout(() => dataTabLink.click(), 500);
+        }
+    }
+
+    /**
+     * Update export tab interface after import
+     */
+    async updateExportTabInterface() {
+        try {
+            const stats = await this.api.getCatalogStats(this.currentCatalogId);
+            const itemsCount = stats.items_count || 0;
+            
+            // Update tab navigation with new count
+            const dataTabLink = document.querySelector('a[href="#tab-data"]');
+            if (dataTabLink) {
+                dataTabLink.textContent = `Перегляд даних (${itemsCount})`;
+            }
+            
+            // Update export tab content
+            const exportTabContent = document.getElementById('tab-export');
+            if (exportTabContent) {
+                const exportCard = exportTabContent.querySelector('.catalog-master-card');
+                if (exportCard) {
+                    // Update export interface based on items count
+                    if (itemsCount > 0) {
+                        exportCard.innerHTML = `
+                            <h3>Експорт даних</h3>
+                            <div class="export-options">
+                                <div class="export-option">
+                                    <h4>CSV</h4>
+                                    <p>Експорт в форматі CSV для використання в Excel та інших програмах</p>
+                                    <button type="button" class="button button-primary export-btn" data-catalog-id="${this.currentCatalogId}" data-format="csv">
+                                        Експортувати CSV
+                                    </button>
+                                </div>
+                                
+                                <div class="export-option">
+                                    <h4>Excel</h4>
+                                    <p>Експорт в форматі Excel (.xls)</p>
+                                    <button type="button" class="button button-primary export-btn" data-catalog-id="${this.currentCatalogId}" data-format="excel">
+                                        Експортувати Excel
+                                    </button>
+                                </div>
+                                
+                                <div class="export-option">
+                                    <h4>JSON Feed</h4>
+                                    <p>JSON фід для використання в API та інших системах</p>
+                                    <button type="button" class="button button-primary export-btn" data-catalog-id="${this.currentCatalogId}" data-format="json">
+                                        Створити JSON Feed
+                                    </button>
+                                </div>
+                                
+                                <div class="export-option">
+                                    <h4>XML Feed</h4>
+                                    <p>XML фід для використання в різних системах</p>
+                                    <button type="button" class="button button-primary export-btn" data-catalog-id="${this.currentCatalogId}" data-format="xml">
+                                        Створити XML Feed
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        exportCard.innerHTML = `
+                            <h3>Експорт даних</h3>
+                            <div class="catalog-master-status info">
+                                В каталозі немає даних для експорту.
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            // Update settings overview if exists
+            const settingsItemsCount = document.querySelector('.settings-overview-card .settings-card-value');
+            if (settingsItemsCount && settingsItemsCount.textContent.match(/^\d/)) {
+                settingsItemsCount.textContent = itemsCount.toLocaleString();
+            }
+            
+            console.log('✅ Export tab interface updated with items count:', itemsCount);
+            
+        } catch (error) {
+            console.error('❌ Error updating export interface:', error);
         }
     }
     

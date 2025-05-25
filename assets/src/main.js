@@ -20,7 +20,7 @@ import ApiClient from './js/utils/ApiClient.js';
 // Initialize application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     // Dev mode indicator
-    console.log('🚀 Catalog Master v1.1.5 - Vite Edition 2025 UPDATED!');
+    console.log('🚀 Catalog Master v1.1.6 - Vite Edition 2025 UPDATED!');
     
     // Initialize only on Catalog Master admin pages
     if (document.querySelector('.catalog-master-admin')) {
@@ -29,14 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const config = window.catalog_master_vite_params || {};
         
         console.log('📋 WordPress config received:', {
-            ajax_url: config.ajax_url ? '✅ ' + config.ajax_url : '❌ undefined',
-            nonce: config.nonce ? '✅ ' + config.nonce.substring(0, 8) + '...' : '❌ undefined',
-            plugin_url: config.plugin_url ? '✅ ' + config.plugin_url : '❌ undefined'
+            ajaxUrl: config.ajax_url,
+            nonce: config.nonce
         });
         
         // Initialize application with proper config
         const app = new CatalogMaster({
-            version: '1.1.5',
+            version: '1.1.6',
             debug: window.catalogMasterConfig?.debug || false,
             ajax_url: config.ajax_url,
             nonce: config.nonce,

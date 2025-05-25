@@ -21,6 +21,7 @@ class CatalogMaster_Ajax {
         add_action('wp_ajax_catalog_master_delete_item', array($this, 'delete_item'));
         add_action('wp_ajax_catalog_master_add_item', array($this, 'add_item'));
         add_action('wp_ajax_catalog_master_get_column_mapping', array($this, 'get_column_mapping'));
+        add_action('wp_ajax_catalog_master_get_catalog_stats', array($this, 'get_catalog_stats'));
     }
     
     /**
@@ -530,5 +531,31 @@ class CatalogMaster_Ajax {
         } else {
             wp_send_json_error('Помилка додавання');
         }
+    }
+
+    /**
+     * Get catalog statistics (items count, etc.)
+     */
+    public function get_catalog_stats() {
+        check_ajax_referer('catalog_master_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        $catalog_id = intval($_POST['catalog_id']);
+        
+        if (!$catalog_id) {
+            wp_send_json_error('Invalid catalog ID');
+            return;
+        }
+        
+        $items_count = CatalogMaster_Database::get_catalog_items_count($catalog_id);
+        $mappings_count = count(CatalogMaster_Database::get_column_mapping($catalog_id));
+        
+        wp_send_json_success(array(
+            'items_count' => $items_count,
+            'mappings_count' => $mappings_count
+        ));
     }
 } 
