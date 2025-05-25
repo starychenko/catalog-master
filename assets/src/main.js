@@ -24,10 +24,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize only on Catalog Master admin pages
     if (document.querySelector('.catalog-master-admin')) {
+        
+        // Get configuration from WordPress localized script
+        const config = window.catalog_master_vite_params || {};
+        
+        console.log('📋 WordPress config received:', {
+            ajax_url: config.ajax_url ? '✅ ' + config.ajax_url : '❌ undefined',
+            nonce: config.nonce ? '✅ ' + config.nonce.substring(0, 8) + '...' : '❌ undefined',
+            plugin_url: config.plugin_url ? '✅ ' + config.plugin_url : '❌ undefined'
+        });
+        
+        // Initialize application with proper config
         const app = new CatalogMaster({
             version: '1.1.5',
-            debug: window.catalogMasterConfig?.debug || false
+            debug: window.catalogMasterConfig?.debug || false,
+            ajax_url: config.ajax_url,
+            nonce: config.nonce,
+            plugin_url: config.plugin_url
         });
+        
+        // Initialize the app
+        app.init();
         
         // Make globally available for debugging
         window.catalogMaster = app;
