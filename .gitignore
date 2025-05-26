@@ -21,6 +21,9 @@ Thumbs.db
 # IDE files
 .idea/
 *.sublime-*
+.vscode/
+*.swp
+*.swo
 
 # Environment files
 .env
@@ -40,9 +43,42 @@ catalog-master-debug.log
 # ВАЖЛИВО: wp-config.php містить конфіденційні дані!
 wp-config.php
 wp-config-local.php
+wp-config-dev.php
 
 # IDE helpers (не для продакшн)
 includes/ide-helper.php
+
+# Development setup files
+setup-*.ps1
+setup-*.bat
+start-dev.ps1
+dev-*.txt
+test-php-errors.php
+QUICK-START.md
+README-DEV.md
+
+# PHP logs and debug files
+php_error_log
+error_log
+debug.log
+wp-content/debug.log
+
+# Composer
+vendor/
+composer.lock
+
+# PHPUnit
+.phpunit.result.cache
+phpunit.xml
+coverage/
+
+# PHPStan
+phpstan.neon
+.phpstan.cache/
+
+# PHPCS
+phpcs.xml
+.phpcs-cache
 
 # Runtime data
 pids
@@ -98,3 +134,28 @@ jspm_packages/
 tmp/
 temp/
 temp_check/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Test files
+tests/tmp/
+tests/logs/
+
+# WordPress uploads (якщо тестуємо локально)
+wp-content/uploads/
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Local development symlinks
+wordpress/
+wp/

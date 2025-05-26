@@ -38,6 +38,11 @@ define('CATALOG_MASTER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CATALOG_MASTER_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('CATALOG_MASTER_PLUGIN_FILE', __FILE__);
 
+// Define debug constant (can be overridden in wp-config.php)
+if (!defined('CATALOG_MASTER_DEBUG')) {
+    define('CATALOG_MASTER_DEBUG', defined('WP_DEBUG') && WP_DEBUG);
+}
+
 /**
  * Plugin activation function
  */
@@ -125,6 +130,11 @@ class CatalogMaster {
     }
     
     private function includes() {
+        // Load debug helpers first (if debug is enabled)
+        if (defined('CATALOG_MASTER_DEBUG') && CATALOG_MASTER_DEBUG) {
+            require_once CATALOG_MASTER_PLUGIN_PATH . 'includes/debug-helpers.php';
+        }
+        
         require_once CATALOG_MASTER_PLUGIN_PATH . 'includes/class-logger.php';
         require_once CATALOG_MASTER_PLUGIN_PATH . 'includes/class-database.php';
         require_once CATALOG_MASTER_PLUGIN_PATH . 'includes/class-admin.php';
@@ -134,6 +144,11 @@ class CatalogMaster {
         
         // Initialize logger
         CatalogMaster_Logger::init();
+        
+        // Log plugin initialization if debug is enabled
+        if (function_exists('catalog_master_log_info')) {
+            catalog_master_log_info('Plugin initialized successfully', 'CatalogMaster');
+        }
     }
     
     private function init_hooks() {

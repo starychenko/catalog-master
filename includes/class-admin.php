@@ -1658,7 +1658,7 @@ class CatalogMaster_Admin {
                                         if (is_array($version) && isset($version['versionString'])) {
                                             echo '<br><small>' . $version['versionString'] . '</small>';
                                         }
-                                        $imagick->destroy();
+                                        $imagick->clear();
                                     } catch (Exception $e) {
                                         echo '<br><small>Помилка отримання версії</small>';
                                     }
@@ -1731,7 +1731,7 @@ class CatalogMaster_Admin {
                     $imagick->setImageCompressionQuality(90);
                     
                     $jpeg_blob = $imagick->getImageBlob();
-                    $imagick->destroy();
+                    $imagick->clear();
                     
                     if ($jpeg_blob !== false && strlen($jpeg_blob) > 0) {
                         echo '<span style="color: green;">✅ Створення JPEG працює (' . strlen($jpeg_blob) . ' байт)</span>';

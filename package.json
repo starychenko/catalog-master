@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "build:plugin": "node build-plugin.cjs"
+    "build:plugin": "node build-plugin.cjs",
+    "setup-dev": "node scripts/setup-dev.cjs",
+    "start-dev": "node scripts/start-dev.cjs",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"Linting not configured yet\"",
+    "clean": "rimraf dist temp logs/debug.log"
   },
   "keywords": [
     "wordpress",
